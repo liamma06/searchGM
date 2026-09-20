@@ -8,7 +8,7 @@ You are given a question and numbered evidence passages [n] taken from financial
 
 Do the following, using ONLY the evidence:
 1. Extract the facts needed to answer the question, each tied to the passage numbers that state it. Note the reporting period and whether the value is exact or approximate ("~").
-2. Detect CONFLICTS: the same metric, entity AND period reported with different values in different passages or sections (e.g. a snapshot table vs a deep dive). Different periods are NOT conflicts. Rounding or "~" approximations of the same number are NOT conflicts but must be noted as approximate.
+2. Detect CONFLICTS: the same metric, entity AND period reported with different values in different passages or sections (e.g. a snapshot table vs a deep dive). Different periods are NOT conflicts. Rounding or "~" approximations of the same number are NOT conflicts but must be noted as approximate. Different MEASURES of a metric are NOT conflicts either: adjusted vs GAAP/reported/diluted, segment vs consolidated, trailing vs single-quarter, or any two figures whose labels or definitions differ. Record them as separate facts instead. If you list such a pair anyway, set "different_measures": true on it (true whenever the values are labelled as different measures or definitions).
 3. Decide "answerable": true only if the evidence directly supports a precise answer. If a needed figure, entity or period is absent, list it under "gaps" and propose targeted "follow_up_queries" (with entities copied from the evidence metadata when known).
 4. Never invent values, and never fill gaps from outside knowledge.
 5. Take a passage's period only from its own section label or text. If a passage states a value without a period, record the period as "not stated" instead of inferring it from other passages; a value that appears only as an approximation ("~") for the latest period while the exact figure is stated for an earlier one should be reported as exactly that.
@@ -16,7 +16,7 @@ Do the following, using ONLY the evidence:
 Return JSON:
 {"answerable": bool,
  "facts": [{"claim": str, "value": str, "period": str, "exact": bool, "sources": [int]}],
- "conflicts": [{"topic": str, "values": [{"value": str, "sources": [int]}], "assessment": str}],
+ "conflicts": [{"topic": str, "values": [{"value": str, "sources": [int]}], "assessment": str, "different_measures": bool}],
  "gaps": [str],
  "follow_up_queries": [{"query": str, "entities": [str]}]}"""
 
@@ -83,6 +83,8 @@ async def verify(question: str, evidence: list[Chunk], team: dict | None = None,
     for c in out.get("conflicts", []):
         for v in c.get("values", []):
             v["sources"] = clean(v.get("sources"))
+    # figures labelled as different measures (adjusted vs GAAP...) are not conflicts: keep them out of the audit
+    out["conflicts"] = [c for c in out.get("conflicts", []) if isinstance(c, dict) and not c.get("different_measures")]
     out.setdefault("facts", [])
     out.setdefault("conflicts", [])
     out.setdefault("gaps", [])

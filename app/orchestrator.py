@@ -61,7 +61,7 @@ async def lookup_flow(corpus: Corpus, question: str, plan: dict, cap: int, st: d
     yield {"type": "stage", "agent": "verifier", "status": "running", "t": ms()}
     with agent_span("verifier", evidence=len(evidence), round=1):
         audit = await verifier.verify(question, evidence, clues=clues)
-    yield {"type": "verification", "round": 1, "audit": audit, "t": ms()}
+    yield {"type": "verification", "round": 1, "audit": audit, "evidence": [c.id for c in evidence], "t": ms()}
 
     follow_ups = [f for f in audit["follow_up_queries"] if isinstance(f, dict) and f.get("query")][:3]
     if followups and (not audit["answerable"] or audit["gaps"]) and follow_ups:
@@ -77,7 +77,7 @@ async def lookup_flow(corpus: Corpus, question: str, plan: dict, cap: int, st: d
         yield {"type": "stage", "agent": "verifier", "status": "running", "t": ms()}
         with agent_span("verifier", evidence=len(evidence), round=2):
             audit = await verifier.verify(question, evidence)
-        yield {"type": "verification", "round": 2, "audit": audit, "t": ms()}
+        yield {"type": "verification", "round": 2, "audit": audit, "evidence": [c.id for c in evidence], "t": ms()}
     st.update(evidence=evidence, audit=audit)
 
 
@@ -110,7 +110,7 @@ async def team_flow(corpus: Corpus, question: str, plan: dict, roster: list[dict
     yield {"type": "stage", "agent": "verifier", "status": "running", "t": ms()}
     with agent_span("verifier", evidence=len(evidence), cross_model=True):
         audit = await verifier.verify(question, evidence, summary)
-    yield {"type": "verification", "round": 1, "audit": audit, "t": ms()}
+    yield {"type": "verification", "round": 1, "audit": audit, "evidence": [c.id for c in evidence], "t": ms()}
     st.update(evidence=evidence, audit=audit, team=summary)
 
 

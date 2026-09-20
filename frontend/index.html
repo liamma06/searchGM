@@ -143,7 +143,10 @@ body.expanded .rail{display:none}
 .gn.company rect{fill:var(--bg)}
 .gn.company.pending rect{stroke-dasharray:3 3}.gn.company.pending text{fill:var(--muted)}
 .gn.company.lead rect{fill:var(--white);stroke:var(--white)}.gn.company.lead text{fill:var(--bg);font-weight:600}
-.gn.passage:not(.cited) rect{fill:var(--muted);stroke:none;opacity:.5}
+.gn.passage:not(.cited):not(.flag) rect{fill:var(--muted);stroke:none;opacity:.5}
+.gn.passage.flag rect{fill:var(--bg);stroke:var(--bad)}.gn.passage.flag text{fill:var(--bad)}
+.gn.conflict rect{fill:var(--bg);stroke:var(--bad);stroke-dasharray:4 3}.gn.conflict text{fill:var(--bad)}.gn.conflict text.sub{fill:var(--muted)}
+.gn.answer.warn rect{stroke:var(--warn)}.gn.answer.warn text.sub{fill:var(--warn)}
 .gn.passage.cited rect{stroke:var(--accent2)}.gn.passage.cited text{fill:var(--accent2)}.gn.passage.cited{cursor:pointer}
 .gn.passage.cited:hover rect{fill:var(--sel)}
 .gn.answer rect{stroke:var(--white)}
@@ -160,6 +163,11 @@ svg.focus .ge:not(.on){opacity:.07}svg.focus .gn:not(.on){opacity:.22}
 .glegend i.no{border-top:1px dashed var(--bad)}.glegend i.out{border-top:1.5px solid var(--accent2)}
 .glegend b{display:inline-block;width:7px;height:7px;background:var(--muted);opacity:.6;margin-right:5px;vertical-align:baseline}
 @media (prefers-reduced-motion:reduce){.pop{animation:none}}
+.gthumb{margin:8px 0 12px;padding:8px;border:1px solid var(--line);background:var(--panel);cursor:pointer}
+.gthumb:hover{border-color:var(--muted)}
+.gthumb svg{width:100%;height:auto;display:block}
+.gthumb text,.gthumb title{display:none}
+.gthumb .pop{animation:none}
 [hidden]{display:none!important}
 @media (prefers-reduced-motion:reduce){*{animation:none!important}}
 </style>
@@ -195,7 +203,7 @@ svg.focus .ge:not(.on){opacity:.07}svg.focus .gn:not(.on){opacity:.22}
   <section class="side">
     <div class="tabs"><button class="tab on" data-p="graph">Graph</button><button class="tab" data-p="sources">Sources</button><button class="tab" data-p="trace">Agent trace</button><button class="tab" data-p="quality" id="tab-quality" hidden>Data quality</button><button class="tabx" id="collapseBtn" title="Shrink back to the tracker">collapse ▸</button></div>
     <div class="rail" id="rail"></div>
-    <div class="pane on" id="pane-graph"><div class="card" id="gempty" style="color:var(--muted)">Ask a question to see how the answer was built: the queries, the evidence found, and what got cited.</div><svg id="graph" hidden></svg><div class="glegend" id="glegend" hidden><span><i></i>supports</span><span><i class="no"></i>contradicts</span><span><b></b>retrieved</span><span><i class="out"></i>cited in answer</span></div></div>
+    <div class="pane on" id="pane-graph"><div class="card" id="gempty" style="color:var(--muted)">Ask a question to see how the answer was built: the queries, the evidence found, and what got cited.</div><svg id="graph" hidden></svg><div class="glegend" id="glegend" hidden><span><i></i>supports</span><span><i class="no"></i>conflict</span><span><b></b>retrieved</span><span><i class="out"></i>cited in answer</span></div></div>
     <div class="pane" id="pane-sources"><div class="card" style="color:var(--muted)">Click a citation like <span class="cite">1</span> in an answer to see the exact source lines.</div></div>
     <div class="pane" id="pane-quality"></div>
     <div class="pane" id="pane-trace"><div class="card" style="color:var(--muted)">Planner → Retriever → Verifier → Writer. Each step appears here live.</div></div>
@@ -217,7 +225,10 @@ function showTab(p){
 
 // ---------- tracker rail: collapsed by default, expands to the full detail panel ----------
 const rail = { steps: [], status: {}, at: {}, sources: null, conflicts: null, gaps: null, ungrounded: null, total: null };
-let scanInfo = null;
+let scanInfo = null, graphActive = false;
+const thumbNode = document.createElement('div');
+thumbNode.className = 'gthumb'; thumbNode.dataset.open = 'graph'; thumbNode.title = 'Open the evidence graph';
+thumbNode.innerHTML = '<svg id="gthumb" preserveAspectRatio="xMidYMid meet"></svg>';
 function setExpanded(on, tab){
   document.body.classList.toggle('expanded', on);
   if (on && tab) showTab(tab);
@@ -261,11 +272,13 @@ function renderRail(){
     return `<button class="rlink" data-open="quality">data quality ▸ <span>${txt}</span></button>`;
   })();
   el.innerHTML = `<div class="rhead"><b>&gt; tracker</b><button class="rlink" data-open="graph" title="Show the full panel">expand ▸</button></div>
+    <div id="gslot"></div>
     ${steps}${facts ? '<div class="rsep"></div>' + facts : ''}
     <div class="rsep"></div>
     <button class="rlink" data-open="graph">graph ▸</button>
     <button class="rlink" data-open="sources">sources ▸</button>
     <button class="rlink" data-open="trace">agent trace ▸</button>${scan}`;
+  const slot = el.querySelector('#gslot'); if (slot && graphActive) slot.appendChild(thumbNode);
 }
 
 // ---------- status / dataset ----------
@@ -423,7 +436,7 @@ const docShort = d => String(d).replace(/\.md$/, '').replace(/^canadian-/, '').r
 const clip = (t, n) => { t = String(t); return t.length > n ? t.slice(0, n - 1) + '…' : t; };
 
 function graphReset(label){
-  G = { nodes: new Map(), edges: [], order: 0 }; seenNodes.clear();
+  G = { nodes: new Map(), edges: [], order: 0 }; seenNodes.clear(); graphActive = true;
   $('#gempty').hidden = true; $('#graph').removeAttribute('hidden'); $('#glegend').hidden = false;  // SVG elements have no .hidden property
   graphNode('q', { col: 0, kind: 'question', label });
   renderGraph();
@@ -470,6 +483,14 @@ function graphOnEvent(ev){
         if (v.verdict === 'supported') (v.passages || []).forEach(pid => graphEdge('e:' + ev.entity, graphPassage(pid), 'faint'));
       });
       break;
+    case 'verification':  // draw each conflict the verifier found: the passages that disagree -> a red node -> the answer
+      (ev.audit.conflicts || []).forEach((c, i) => {
+        const xid = 'x' + ev.round + '_' + i;
+        graphNode(xid, { col: 3.5, kind: 'conflict', label: c.topic || 'conflict', sub: (c.values || []).map(v => v.value).join(' vs ') });
+        graphEdge(xid, 'a', 'no');
+        (c.values || []).forEach(v => (v.sources || []).forEach(k => { const cid = (ev.evidence || [])[k - 1]; if (cid) graphEdge(graphPassage(cid, { flag: true }), xid, 'no'); }));
+      });
+      break;
     case 'team': { const lead = G.nodes.get('e:' + ev.summary.leader); if (lead) lead.lead = true; break; }
     case 'citations':
       graphNode('a', { col: 4, kind: 'answer', label: 'answer' });
@@ -479,14 +500,15 @@ function graphOnEvent(ev){
       });
       break;
     case 'grounding':
-      graphNode('a', { col: 4, kind: 'answer', label: 'answer', sub: ev.conflicts ? `${ev.conflicts} conflict${ev.conflicts > 1 ? 's' : ''}` : (ev.ungrounded_numbers.length ? 'check figures' : 'grounded') });
+      graphNode('a', { col: 4, kind: 'answer', label: 'answer', sub: ev.conflicts ? `${ev.conflicts} conflict${ev.conflicts > 1 ? 's' : ''}` : (ev.ungrounded_numbers.length ? 'check figures' : 'grounded'), warn: ev.conflicts > 0 || ev.ungrounded_numbers.length > 0 });
       break;
   }
   renderGraph();
 }
 
-const NODE = { question: [124, 30], clue: [186, 42], subq: [186, 42], company: [58, 24], passage: [156, 20], dot: [7, 7], answer: [84, 34] };
-function nodeBox(n){ return n.kind === 'passage' && !n.cited ? NODE.dot : NODE[n.kind]; }
+const NODE = { question: [124, 30], clue: [186, 42], subq: [186, 42], company: [58, 24], passage: [156, 20], dot: [7, 7], answer: [84, 34], conflict: [178, 34] };
+const isDot = n => n.kind === 'passage' && !n.cited && !n.flag;  // flagged = part of a conflict, so it gets a label
+function nodeBox(n){ return isDot(n) ? NODE.dot : NODE[n.kind]; }
 function renderGraph(){
   const svg = $('#graph'); if (!svg || !G) return;
   const nodes = [...G.nodes.values()];
@@ -496,13 +518,13 @@ function renderGraph(){
   const colW = byCol.map(list => Math.max(...list.map(n => nodeBox(n)[0])));
   const gap = cols.length > 1 ? (W - 2 * PX - colW.reduce((a, b) => a + b, 0)) / (cols.length - 1) : 0;
   const colX = []; let x = PX; colW.forEach(w => { colX.push(x); x += w + gap; });
-  const stackH = list => list.reduce((h, n, i) => h + nodeBox(n)[1] + (i ? (n.kind === 'passage' && !n.cited ? GAP_Y.dot : GAP_Y.other) : 0), 0);
-  const H = Math.max(...byCol.map(stackH)) + 2 * PY;
+  const stackH = list => list.reduce((h, n, i) => h + nodeBox(n)[1] + (i ? (isDot(n) ? GAP_Y.dot : GAP_Y.other) : 0), 0);
+  const H = Math.max(340, Math.max(...byCol.map(stackH)) + 2 * PY);
   const pos = new Map();
   byCol.forEach((list, ci) => {
     let y = PY + (H - 2 * PY - stackH(list)) / 2;
     list.forEach((n, i) => {
-      const [w, h] = nodeBox(n); if (i) y += n.kind === 'passage' && !n.cited ? GAP_Y.dot : GAP_Y.other;
+      const [w, h] = nodeBox(n); if (i) y += isDot(n) ? GAP_Y.dot : GAP_Y.other;
       pos.set(n.id, { x: colX[ci] + (colW[ci] - w) / 2, y, w, h }); y += h;
     });
   });
@@ -512,9 +534,9 @@ function renderGraph(){
   }).join('');
   const lines = (t, n) => { const w = t.split(' '); const out = ['']; w.forEach(s => { if ((out[out.length - 1] + ' ' + s).trim().length > n && out.length < 2) out.push(s); else out[out.length - 1] = (out[out.length - 1] + ' ' + s).trim(); }); return out.map(l => clip(l, n)); };
   const nodesSvg = nodes.map(n => {
-    const p = pos.get(n.id); const dot = n.kind === 'passage' && !n.cited;
+    const p = pos.get(n.id); const dot = isDot(n);
     const isNew = !seenNodes.has(n.id); seenNodes.add(n.id);
-    const cls = `gn ${n.kind}${n.cited ? ' cited' : ''}${n.lead ? ' lead' : ''}${n.state === 'pending' ? ' pending' : ''}${isNew ? ' pop' : ''}`;
+    const cls = `gn ${n.kind}${n.cited ? ' cited' : ''}${n.flag ? ' flag' : ''}${n.warn ? ' warn' : ''}${n.lead ? ' lead' : ''}${n.state === 'pending' ? ' pending' : ''}${isNew ? ' pop' : ''}`;
     let body = `<rect x="${p.x}" y="${p.y}" width="${p.w}" height="${p.h}"/>`;
     const cx = p.x + 6, cy = p.y + p.h / 2 + 3.5;
     if (n.kind === 'clue' || n.kind === 'subq'){
@@ -523,6 +545,8 @@ function renderGraph(){
       if (n.kind === 'subq' && n.hits) body += `<text class="sub" x="${p.x + p.w - 6}" y="${p.y + p.h + 10}" text-anchor="end">${n.hits} retrieved</text>`;
     } else if (n.kind === 'company'){
       body += `<text x="${p.x + p.w / 2}" y="${cy}" text-anchor="middle">${esc(n.label)}</text>`;
+    } else if (n.kind === 'conflict'){
+      body += `<text x="${cx}" y="${p.y + 14}">${esc(clip(n.label, 26))}</text><text class="sub" x="${cx}" y="${p.y + 27}">${esc(clip(n.sub || '', 30))}</text>`;
     } else if (n.kind === 'answer'){
       body += `<text x="${p.x + p.w / 2}" y="${p.y + 14}" text-anchor="middle">answer</text>` + (n.sub ? `<text class="sub" x="${p.x + p.w / 2}" y="${p.y + 27}" text-anchor="middle">${esc(n.sub)}</text>` : '');
     } else if (!dot){
@@ -533,6 +557,8 @@ function renderGraph(){
   }).join('');
   svg.setAttribute('viewBox', `0 0 ${W} ${H + 12}`);
   svg.innerHTML = edges + nodesSvg;
+  const thumb = thumbNode.querySelector('svg'); thumb.setAttribute('viewBox', `0 0 ${W} ${H + 12}`); thumb.innerHTML = edges + nodesSvg;
+  if (!thumbNode.isConnected) renderRail();
 }
 // hover: dim everything not connected to the node under the cursor; click a cited passage to open it
 $('#graph').addEventListener('mouseover', e => {
