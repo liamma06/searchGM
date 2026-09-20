@@ -28,6 +28,14 @@ class Settings:
     # every time, lookup at a 7 s median vs 16 s (team) and a 56 s p90 (auto), so lookup is the default.
     # "team" = one analyst agent per company + cross-model verifier (UI: "Deep team analysis"); "auto" = lookup, escalate if unsure
     identify_flow = os.getenv("IDENTIFY_FLOW", "lookup")
+    # sign-in and saved history
+    session_secret = os.getenv("SESSION_SECRET", "")
+    auth_required = os.getenv("AUTH_REQUIRED", "1") != "0"
+    cookie_secure = os.getenv("COOKIE_SECURE", "0") == "1"
+    mongodb_uri = os.getenv("MONGODB_URI", "").strip()
+    mongodb_db = os.getenv("MONGODB_DB", "signal")
+    rate_limit_per_hour = int(os.getenv("RATE_LIMIT_PER_HOUR", "60"))
+    admin_users = [e.strip().lower() for e in os.getenv("ADMIN_USERS", "").split(",") if e.strip()]
     cache_dir = ROOT / "data" / "cache"
 
 

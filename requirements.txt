@@ -8,3 +8,7 @@ rank-bm25
 numpy
 pytest
 sentry-sdk[fastapi,openai]
+argon2-cffi
+itsdangerous
+pymongo
+mongomock

@@ -40,6 +40,16 @@ tables, `<details>` blocks), and the planner is given the new corpus overview. N
   path, click a cited passage to open it. It is drawn from events the server already streams, so it adds no latency.
 - **Deep team analysis** toggle, **analyst brief** per company, and a **dataset loader** for a new MCP URL.
 
+## Accounts and saved chats
+
+Email + password accounts (argon2id hashes, signed HttpOnly session cookie, login throttling, CSRF header on
+every unsafe request). Chats are stored in MongoDB (`MONGODB_URI`; without it an in-memory store is used and
+nothing survives a restart). Each run keeps its full event stream, so opening a past chat **replays** the graph,
+trace and sources exactly as they were. A chat can be shared as a read-only link (`/?share=<token>`) that works
+without signing in and can be revoked. The first account to register is the admin; only admins can load a new
+dataset or run the GPTZero scan. Questions are rate-limited per user (`RATE_LIMIT_PER_HOUR`). Set `AUTH_REQUIRED=0`
+to run open as a single local user.
+
 ## Identification questions and the analyst team
 
 The RBC prize questions are riddles ("which bank did X while also Y?"). The planner recognises them and

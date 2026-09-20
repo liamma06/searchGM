@@ -168,6 +168,33 @@ svg.focus .ge:not(.on){opacity:.07}svg.focus .gn:not(.on){opacity:.22}
 .gthumb svg{width:100%;height:auto;display:block}
 .gthumb text,.gthumb title{display:none}
 .gthumb .pop{animation:none}
+/* sign-in screen, history, chat bar, shared view */
+#gate{position:fixed;inset:0;z-index:50;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:16px}
+#gate-form{width:min(360px,100%);display:flex;flex-direction:column;gap:10px}
+#gate-form .gt{font:700 20px var(--mono);color:var(--white)}
+#gate-form .gt::before{content:"$ ";color:var(--muted);font-weight:400}
+#gate-form .gs{color:var(--muted);margin-bottom:6px}
+.gtabs{display:flex;border-bottom:1px solid var(--line);margin-bottom:4px}
+.gtabs button{border:0;border-bottom:1px solid transparent;margin-bottom:-1px;padding:6px 14px 6px 0;color:var(--muted);text-transform:lowercase}
+.gtabs button.on{color:var(--white);border-bottom-color:var(--white)}
+.gtabs button:hover:not(:disabled){background:none;color:var(--white)}
+#gate-form input{padding:8px 10px;font:14px var(--sans)}
+#gate-err{min-height:1.4em;font-size:13px}
+#gate-go{padding:8px 12px;font-size:14px}
+.linkbtn{border:0;padding:0;background:none;color:var(--muted);font:12px var(--mono)}
+.linkbtn:hover:not(:disabled){background:none;color:var(--white);text-decoration:underline}
+#chatbar{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;padding:6px 18px;border-bottom:1px solid var(--line);font:12px var(--mono);color:var(--muted)}
+#chatbar .ct{color:var(--white);font-weight:600;max-width:46ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#chatbar .cm{flex:1;color:var(--muted)}
+#chatbar button{padding:1px 10px;font:12px var(--mono)}
+.hrow{margin-bottom:10px}.hrow button{font:12px var(--mono)}
+.hitem{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 10px;padding:7px 0;border-bottom:1px dashed var(--line);cursor:pointer}
+.hitem:hover .ht,.hitem.cur .ht{color:var(--white)}
+.hitem .ht{flex:1 1 60%;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hitem .hm{font:11px var(--mono);color:var(--muted)}
+.hitem .hdel{border:0;padding:0 6px;color:var(--muted);background:none;font-size:16px;line-height:1}
+.hitem .hdel:hover:not(:disabled){background:none;color:var(--bad)}
+.shared form.ask,.shared .loader,.shared #tab-quality,.shared .tab[data-p=history],.shared #pill-backend,.shared #pill-sentry,.shared #pill-gz,.shared #pill-user,.shared #signout{display:none!important}
 [hidden]{display:none!important}
 @media (prefers-reduced-motion:reduce){*{animation:none!important}}
 </style>
@@ -179,6 +206,8 @@ svg.focus .ge:not(.on){opacity:.07}svg.focus .gn:not(.on){opacity:.22}
   <span class="pill" id="pill-backend">search: –</span>
   <span class="pill" id="pill-sentry" hidden>Sentry on</span>
   <span class="pill" id="pill-gz" hidden>GPTZero on</span>
+  <span class="pill" id="pill-user" hidden></span>
+  <button type="button" class="linkbtn" id="signout" hidden>sign out</button>
   <div class="loader">
     <input id="mcp" placeholder="MCP server URL (Phase 2: paste the new dataset server)" spellcheck="false">
     <button id="load">Load dataset</button>
@@ -186,6 +215,7 @@ svg.focus .ge:not(.on){opacity:.07}svg.focus .gn:not(.on){opacity:.22}
 </header>
 <main>
   <section class="chat">
+    <div id="chatbar" hidden></div>
     <div id="thread">
       <div class="empty" id="empty">
         <h2>Ask anything about the research corpus</h2>
@@ -201,24 +231,156 @@ svg.focus .ge:not(.on){opacity:.07}svg.focus .gn:not(.on){opacity:.22}
     </form>
   </section>
   <section class="side">
-    <div class="tabs"><button class="tab on" data-p="graph">Graph</button><button class="tab" data-p="sources">Sources</button><button class="tab" data-p="trace">Agent trace</button><button class="tab" data-p="quality" id="tab-quality" hidden>Data quality</button><button class="tabx" id="collapseBtn" title="Shrink back to the tracker">collapse ▸</button></div>
+    <div class="tabs"><button class="tab on" data-p="graph">Graph</button><button class="tab" data-p="sources">Sources</button><button class="tab" data-p="trace">Agent trace</button><button class="tab" data-p="quality" id="tab-quality" hidden>Data quality</button><button class="tab" data-p="history">History</button><button class="tabx" id="collapseBtn" title="Shrink back to the tracker">collapse ▸</button></div>
     <div class="rail" id="rail"></div>
     <div class="pane on" id="pane-graph"><div class="card" id="gempty" style="color:var(--muted)">Ask a question to see how the answer was built: the queries, the evidence found, and what got cited.</div><svg id="graph" hidden></svg><div class="glegend" id="glegend" hidden><span><i></i>supports</span><span><i class="no"></i>conflict</span><span><b></b>retrieved</span><span><i class="out"></i>cited in answer</span></div></div>
     <div class="pane" id="pane-sources"><div class="card" style="color:var(--muted)">Click a citation like <span class="cite">1</span> in an answer to see the exact source lines.</div></div>
     <div class="pane" id="pane-quality"></div>
+    <div class="pane" id="pane-history"></div>
     <div class="pane" id="pane-trace"><div class="card" style="color:var(--muted)">Planner → Retriever → Verifier → Writer. Each step appears here live.</div></div>
   </section>
 </main>
+<div id="gate" hidden>
+  <form id="gate-form">
+    <div class="gt">signal</div>
+    <div class="gs">Sign in to ask questions and keep your history.</div>
+    <div class="gtabs"><button type="button" id="gate-login" class="on">sign in</button><button type="button" id="gate-signup">create account</button></div>
+    <input id="g-name" placeholder="name" autocomplete="name" hidden>
+    <input id="g-email" type="email" placeholder="email" autocomplete="email" required>
+    <input id="g-pass" type="password" placeholder="password (8+ characters)" autocomplete="current-password" required minlength="8">
+    <div id="gate-err" class="err"></div>
+    <button class="primary" id="gate-go">sign in</button>
+  </form>
+</div>
 <script src="/static/vendor/marked.min.js"></script>
 <script src="/static/vendor/purify.min.js"></script>
 <script>
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 let busy = false, cites = {}, statusPoll, INT = {};
+// ---------- accounts, saved chats, sharing ----------
+const EMPTY_HTML = $('#empty').outerHTML, PANE0 = { sources: $('#pane-sources').innerHTML, trace: $('#pane-trace').innerHTML };
+const SHARED = new URLSearchParams(location.search).get('share');
+let ME = null, AUTH = false, IS_ADMIN = false, CHATS = [], LAST_DOCS = null;
+let currentChatId = null, currentTitle = '', currentShared = false, shareMsg = '';
+
+// every unsafe request carries a header a cross-site form post can't add (server-side CSRF guard);
+// a 401 anywhere means the session ended, so show the sign-in screen
+const _fetch = window.fetch.bind(window);
+window.fetch = (url, opts = {}) => {
+  if ((opts.method || 'GET').toUpperCase() !== 'GET') opts = { ...opts, headers: { 'X-Requested-With': 'fetch', ...(opts.headers || {}) } };
+  return _fetch(url, opts).then(r => { if (r.status === 401 && !String(url).startsWith('/auth/') && !SHARED) showGate(); return r; });
+};
+
+const ago = t => { const s = Math.max(1, Math.round(Date.now() / 1000 - t)); return s < 90 ? 'just now' : s < 5400 ? Math.round(s / 60) + ' min ago' : s < 129600 ? Math.round(s / 3600) + ' h ago' : Math.round(s / 86400) + ' d ago'; };
+
+// ----- sign-in screen -----
+let gateMode = 'login';
+function showGate(){ $('#gate').hidden = false; }
+function hideGate(){ $('#gate').hidden = true; }
+function setGateMode(m){
+  gateMode = m;
+  $('#gate-login').classList.toggle('on', m === 'login'); $('#gate-signup').classList.toggle('on', m === 'signup');
+  $('#g-name').hidden = m === 'login'; $('#gate-go').textContent = m === 'login' ? 'sign in' : 'create account';
+  $('#g-pass').autocomplete = m === 'login' ? 'current-password' : 'new-password'; $('#gate-err').textContent = '';
+}
+$('#gate-login').onclick = () => setGateMode('login');
+$('#gate-signup').onclick = () => setGateMode('signup');
+$('#gate-form').onsubmit = async e => {
+  e.preventDefault(); $('#gate-err').textContent = ''; $('#gate-go').disabled = true;
+  try{
+    const r = await fetch(gateMode === 'login' ? '/auth/login' : '/auth/signup', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: $('#g-email').value, password: $('#g-pass').value, name: $('#g-name').value }) });
+    const j = await r.json();
+    if (!r.ok){ $('#gate-err').textContent = j.detail || 'Something went wrong.'; return; }
+    ME = j; $('#g-pass').value = ''; hideGate(); showUser(); startApp();
+  }catch(err){ $('#gate-err').textContent = 'Could not reach the server.'; }
+  finally{ $('#gate-go').disabled = false; }
+};
+function showUser(){
+  $('#pill-user').hidden = $('#signout').hidden = !(AUTH && ME);
+  if (ME) $('#pill-user').textContent = ME.name;
+}
+$('#signout').onclick = async () => { await fetch('/auth/logout', { method: 'POST' }); location.reload(); };
+
+// ----- history -----
+async function loadHistory(){
+  if (SHARED) return;
+  try{ const r = await fetch('/api/chats'); if (!r.ok) return; CHATS = await r.json(); renderHistory(); renderRail(); }catch(e){}
+}
+function renderHistory(){
+  const list = CHATS.map(c => `<div class="hitem${c.id === currentChatId ? ' cur' : ''}" data-id="${esc(c.id)}"><span class="ht">${esc(c.title)}</span><span class="hm">${ago(c.updated_at)}${c.runs > 1 ? ' · ' + c.runs + ' questions' : ''}${c.shared ? ' · shared' : ''}</span><button type="button" class="hdel" data-del="${esc(c.id)}" title="Delete this chat">×</button></div>`).join('');
+  $('#pane-history').innerHTML = `<div class="hrow"><button type="button" id="newChat">+ new chat</button></div>` + (list || '<div class="card" style="color:var(--muted)">No saved chats yet. Ask a question and it is saved here.</div>');
+}
+$('#pane-history').addEventListener('click', e => {
+  if (e.target.closest('#newChat')){ newChat(); return; }
+  const del = e.target.closest('[data-del]'); if (del){ deleteChat(del.dataset.del); return; }
+  const it = e.target.closest('.hitem'); if (it) openChat(it.dataset.id);
+});
+async function openChat(id){
+  if (busy) return;
+  const r = await fetch('/api/chats/' + encodeURIComponent(id)); if (!r.ok) return;
+  const chat = await r.json();
+  currentChatId = chat.id; currentTitle = chat.title; currentShared = chat.shared; shareMsg = '';
+  replayRuns(chat.runs); renderChatbar(); renderHistory();
+}
+async function deleteChat(id){
+  if (!confirm('Delete this chat? This cannot be undone.')) return;
+  const r = await fetch('/api/chats/' + encodeURIComponent(id), { method: 'DELETE' });
+  if (r.ok){ if (id === currentChatId) newChat(); loadHistory(); }
+}
+function newChat(){
+  if (busy) return;
+  currentChatId = null; currentTitle = ''; currentShared = false; shareMsg = '';
+  $('#thread').innerHTML = EMPTY_HTML; if (LAST_DOCS) renderExamples(LAST_DOCS);
+  $('#pane-sources').innerHTML = PANE0.sources; $('#pane-trace').innerHTML = PANE0.trace;
+  graphActive = false; G = null; $('#graph').setAttribute('hidden', ''); $('#gempty').hidden = false; $('#glegend').hidden = true;
+  railReset([]); renderChatbar(); renderHistory();
+}
+
+// ----- chat bar: title, share, new chat -----
+function renderChatbar(){
+  const b = $('#chatbar');
+  if (SHARED){ b.hidden = false; b.innerHTML = `<span class="ct">${esc(currentTitle)}</span><span class="cm">shared, read-only</span>`; return; }
+  if (!currentChatId){ b.hidden = true; return; }
+  b.hidden = false;
+  b.innerHTML = `<span class="ct">${esc(currentTitle)}</span><span class="cm">${esc(shareMsg)}</span>
+    <button type="button" id="shareBtn">${currentShared ? 'copy link' : 'share'}</button>${currentShared ? '<button type="button" id="unshareBtn">stop sharing</button>' : ''}<button type="button" id="newBtn">new chat</button>`;
+  $('#shareBtn').onclick = async () => {
+    const r = await fetch(`/api/chats/${encodeURIComponent(currentChatId)}/share`, { method: 'POST' }); if (!r.ok) return;
+    const link = `${location.origin}/?share=${(await r.json()).token}`;
+    currentShared = true; try{ await navigator.clipboard.writeText(link); shareMsg = 'link copied'; }catch(e){ shareMsg = link; }
+    renderChatbar(); loadHistory();
+  };
+  if ($('#unshareBtn')) $('#unshareBtn').onclick = async () => {
+    await fetch(`/api/chats/${encodeURIComponent(currentChatId)}/share`, { method: 'DELETE' });
+    currentShared = false; shareMsg = 'link disabled'; renderChatbar(); loadHistory();
+  };
+  $('#newBtn').onclick = newChat;
+}
+
+// ----- start-up -----
+async function boot(){
+  if (SHARED) return bootShared();
+  let me; try{ me = await (await fetch('/api/me')).json(); }catch(e){ return; }
+  ME = me.user; AUTH = me.auth_required;
+  if (AUTH && !ME){ showGate(); return; }
+  hideGate(); showUser(); startApp();
+}
+async function bootShared(){
+  document.body.classList.add('shared');
+  $('#pill-data').textContent = 'shared view'; $('#pill-data').className = 'pill';
+  const r = await fetch('/api/shared/' + encodeURIComponent(SHARED));
+  if (!r.ok){ $('#thread').innerHTML = '<div class="empty"><h2>This link is no longer shared</h2><div>Ask the owner for a new one.</div></div>'; return; }
+  const chat = await r.json(); currentTitle = chat.title;
+  replayRuns(chat.runs); renderChatbar(); renderRail();
+}
+
 
 // ---------- tabs ----------
 document.querySelectorAll('.tab').forEach(t => t.onclick = () => showTab(t.dataset.p));
 function showTab(p){
+  if (p === 'history') loadHistory();  // always show the latest list when the tab opens
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.dataset.p === p));
   document.querySelectorAll('.pane').forEach(x => x.classList.toggle('on', x.id === 'pane-' + p));
 }
@@ -266,6 +428,7 @@ function renderRail(){
     fact('figures', rail.ungrounded == null ? null : (rail.ungrounded ? rail.ungrounded + ' ungrounded' : 'all grounded'), rail.ungrounded ? 'bad' : 'ok'),
     fact('total', rail.total == null ? null : (rail.total / 1000).toFixed(1) + 's'),
   ].join('');
+  const hist = SHARED ? '' : `<button class="rlink" data-open="history">history ▸ <span>${CHATS.length ? CHATS.length + ' saved' : ''}</span></button>`;
   const scan = !INT.gptzero ? '' : (() => {
     const s = scanInfo;
     const txt = !s ? '' : s.running ? `${s.done}/${s.total}` : s.scanned ? `${s.flagged} flagged` : 'not scanned';
@@ -277,7 +440,7 @@ function renderRail(){
     <div class="rsep"></div>
     <button class="rlink" data-open="graph">graph ▸</button>
     <button class="rlink" data-open="sources">sources ▸</button>
-    <button class="rlink" data-open="trace">agent trace ▸</button>${scan}`;
+    <button class="rlink" data-open="trace">agent trace ▸</button>${scan}${hist}`;
   const slot = el.querySelector('#gslot'); if (slot && graphActive) slot.appendChild(thumbNode);
 }
 
@@ -292,6 +455,7 @@ async function refreshStatus(){
     pb.textContent = 'search: ' + s.backend; pb.className = 'pill ' + (s.backend.startsWith('elastic') ? 'ok' : '');
     pb.title = s.notice || '';
     INT = s.integrations || {};
+    IS_ADMIN = !!s.is_admin; $('.loader').hidden = !IS_ADMIN;  // only admins load datasets
     if (INT.gptzero && !scanInfo) fetch('/api/gptzero/scan').then(r => r.json()).then(x => { scanInfo = x; renderRail(); }).catch(() => {});
     renderRail();
     $('#pill-sentry').hidden = !INT.sentry; $('#pill-sentry').className = 'pill ok';
@@ -303,7 +467,7 @@ async function refreshStatus(){
       const sel = $('#entity'), cur = sel.value;
       sel.innerHTML = ents.map(e => `<option>${esc(e)}</option>`).join('');
       if (ents.includes(cur)) sel.value = cur;
-      renderExamples(s.documents);
+      LAST_DOCS = s.documents; renderExamples(s.documents);
     }
     return s;
   }catch(e){ return null; }
@@ -317,11 +481,14 @@ function renderExamples(docs){
     `Are there any conflicting figures reported for ${a}?`,
     `What upcoming catalysts could move ${b}?`,
   ];
+  if (!$('#examples')) return;
   $('#examples').innerHTML = ex.map(e => `<span class="chip">${esc(e)}</span>`).join('');
   document.querySelectorAll('.chip').forEach(c => c.onclick = () => { $('#q').value = c.textContent; $('#form').requestSubmit(); });
 }
-statusPoll = setInterval(async () => { const s = await refreshStatus(); if (s && (s.loaded || s.error) && !s.loading) clearInterval(statusPoll); }, 1500);
-refreshStatus();
+function startApp(){
+  statusPoll = setInterval(async () => { const s = await refreshStatus(); if (s && (s.loaded || s.error) && !s.loading) clearInterval(statusPoll); }, 1500);
+  refreshStatus(); loadHistory();
+}
 
 $('#load').onclick = async () => {
   const url = $('#mcp').value.trim(); if (!url) return;
@@ -372,7 +539,7 @@ function sourceCard(c){
 async function loadLines(card, id){
   const box = card.querySelector('.lines'), rendered = card.querySelector('.rendered');
   try{
-    const r = await (await fetch('/api/chunk/' + encodeURIComponent(id) + '?radius=3')).json();
+    const r = await (await fetch('/api/chunk/' + encodeURIComponent(id) + '?radius=3' + (SHARED ? '&share=' + encodeURIComponent(SHARED) : ''))).json();
     box.innerHTML = r.lines.map(l => `<div class="ln ${l.hit ? 'hit' : ''}"><i>${l.n}</i>${esc(l.text) || ' '}</div>`).join('');
     rendered.innerHTML = mdHtml(r.markdown);
     tidyTables(rendered);
@@ -395,7 +562,12 @@ function focusSource(n){
 }
 
 // ---------- GPTZero ----------
+// at most two badge lookups at once: browsers allow only 6 connections per host, and slow ones would starve everything else
+let gzActive = 0; const gzWaiting = [];
+async function gzSlot(){ if (gzActive >= 2) await new Promise(r => gzWaiting.push(r)); gzActive++; }
+function gzRelease(){ gzActive--; const n = gzWaiting.shift(); if (n) n(); }
 async function gzBadge(c){
+  await gzSlot();
   try{
     const r = await (await fetch('/api/gptzero/chunk/' + encodeURIComponent(c.id))).json();
     const el = document.getElementById('gz-' + c.n); if (!el || r.skipped || r.error) return;
@@ -403,6 +575,7 @@ async function gzBadge(c){
     el.textContent = r.ai_pct >= 50 ? `GPTZero: ${r.ai_pct}% AI-written` : `GPTZero: human (${100 - r.ai_pct}%)`;
     if (r.flagged_sentences?.length) el.title = 'Flagged: ' + r.flagged_sentences.join(' | ');
   }catch(e){}
+  finally{ gzRelease(); }
 }
 async function renderQuality(s){
   const pane = $('#pane-quality');
@@ -411,10 +584,10 @@ async function renderQuality(s){
     <div style="margin-bottom:8px;color:var(--muted)">Checks every long text passage in the dataset for AI-generated writing, so machine-written analyst blurbs can be treated as lower-trust evidence.</div>
     ${s.running ? `<div>Scanning… ${s.done}/${s.total} (${bar}%)</div>` : s.scanned ? `<div>${s.scanned} passages scanned · <b>${s.flagged}</b> flagged as likely AI-written</div>` : ''}
     ${s.error ? `<div class="conf" style="border-color:var(--bad)">${esc(s.error)}</div>` : ''}
-    <div style="margin-top:8px"><button id="scanBtn" ${s.running ? 'disabled' : ''}>${s.scanned ? 'Re-scan' : 'Scan corpus'}</button></div></div>` +
+    <div style="margin-top:8px">${IS_ADMIN ? `<button id="scanBtn" ${s.running ? 'disabled' : ''}>${s.scanned ? 'Re-scan' : 'Scan corpus'}</button>` : '<span style="color:var(--muted)">Only an admin can start a scan.</span>'}</div></div>` +
     s.items.map(i => `<div class="card"><div><span class="gz ai">${i.ai_pct}% AI</span> ${esc(i.doc)} · L${i.start_line}–${i.end_line}</div>
       <div style="color:var(--muted);margin:4px 0">${esc(i.section)}</div><div>“${esc(i.sample)}”</div></div>`).join('');
-  $('#scanBtn').onclick = startScan;
+  if ($('#scanBtn')) $('#scanBtn').onclick = startScan;
 }
 async function pollScan(){
   const s = await (await fetch('/api/gptzero/scan')).json(); scanInfo = s; renderRail(); renderQuality(s);
@@ -578,9 +751,9 @@ $('#form').addEventListener('submit', e => { e.preventDefault(); const q = $('#q
 $('#q').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); $('#form').requestSubmit(); } });
 $('#briefBtn').onclick = () => { const ent = $('#entity').value; if (ent) go('/api/brief', {entity:ent}, `Analyst brief: ${ent}`); };
 
-async function go(url, body, label){
-  if (busy) return; busy = true; cites = {};
-  $('#empty')?.remove(); $('#q').value = ''; $('#send').disabled = $('#briefBtn').disabled = true;
+function beginRun(label){
+  cites = {};
+  $('#empty')?.remove();
   const thread = $('#thread');
   thread.insertAdjacentHTML('beforeend', `<div class="q">${esc(label)}</div><div class="a"><div class="body md cursor"></div><div class="badges"></div></div>`);
   const answer = thread.querySelector('.a:last-child'), bodyEl = answer.querySelector('.body'), badges = answer.querySelector('.badges');
@@ -600,6 +773,9 @@ async function go(url, body, label){
   function handle(ev){
     graphOnEvent(ev);
     switch(ev.type){
+      case 'chat':
+        if (currentChatId !== ev.id){ currentChatId = ev.id; currentShared = false; shareMsg = ''; }
+        renderChatbar(); break;
       case 'stage': setStep(ev.agent, 'run'); railStage(ev.agent, ev.t); break;
       case 'plan':
         clues = ev.clues || [];
@@ -658,21 +834,47 @@ async function go(url, body, label){
     }
   }
 
+  return { handle, bodyEl, end(){ bodyEl.classList.remove('cursor'); } };
+}
+
+async function go(url, body, label){
+  if (busy) return;
+  busy = true; $('#q').value = ''; $('#send').disabled = $('#briefBtn').disabled = true;
+  currentTitle = currentTitle || label;
+  const run = beginRun(label);
   try{
-    const r = await fetch(url, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
-    if (!r.ok) throw new Error(r.statusText);
+    const r = await fetch(url, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({...body, chat_id: currentChatId})});
+    if (!r.ok){ let m = r.statusText; try{ m = (await r.json()).detail || m; }catch(e){} throw new Error(m); }
     const reader = r.body.getReader(), dec = new TextDecoder(); let buf = '';
     for(;;){
       const {value, done} = await reader.read(); if (done) break;
       buf += dec.decode(value, {stream:true});
       let i; while ((i = buf.indexOf('\n\n')) >= 0){
         const chunk = buf.slice(0, i); buf = buf.slice(i + 2);
-        if (chunk.startsWith('data: ')) handle(JSON.parse(chunk.slice(6)));
+        if (chunk.startsWith('data: ')) run.handle(JSON.parse(chunk.slice(6)));
       }
     }
-  }catch(e){ bodyEl.innerHTML += `<p class="err">${esc(e.message)}</p>`; }
-  bodyEl.classList.remove('cursor'); busy = false; $('#send').disabled = $('#briefBtn').disabled = false;
+  }catch(e){ run.bodyEl.innerHTML += `<p class="err">${esc(e.message)}</p>`; }
+  run.end(); busy = false; $('#send').disabled = $('#briefBtn').disabled = false; loadHistory();
 }
+
+// a saved chat replays through the same handler as a live run: tokens were stored as one answer string,
+// so it is fed in just before the citations arrive
+function replayRuns(runs){
+  const thread = $('#thread'); thread.innerHTML = '';
+  runs.forEach(run => {
+    const r = beginRun(run.question); let fed = false;
+    for (const ev of run.events){
+      if (!fed && ['citations', 'grounding', 'done', 'error'].includes(ev.type)){ r.handle({type: 'token', text: run.answer}); fed = true; }
+      r.handle(ev);
+    }
+    if (!fed) r.handle({type: 'token', text: run.answer});
+    r.end();
+  });
+  thread.scrollTop = 0;
+}
+
+boot();
 </script>
 </body>
 </html>
