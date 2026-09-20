@@ -1,0 +1,23 @@
+# secrets and local config
+.env
+.env.*
+!.env.example
+.claude/
+
+# python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# generated / local-only data (cached MCP dataset, embeddings, eval output)
+data/
+
+# editor / OS / shell junk
+*.stackdump
+nohup.out
+*.log
+node_modules/
+.DS_Store
+.vscode/
+.idea/

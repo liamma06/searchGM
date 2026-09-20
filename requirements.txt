@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+httpx
+openai
+elasticsearch
+python-dotenv
+rank-bm25
+numpy
+pytest
+sentry-sdk[fastapi,openai]

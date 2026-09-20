@@ -1,0 +1,9 @@
+[
+  {"q": "What was RBC's CET1 ratio in Q3 FY2026?", "expect": ["13.5%"]},
+  {"q": "What was TD's CET1 ratio in Q3 FY2026?", "expect": ["14.3%"]},
+  {"q": "What was Royal Bank of Canada's Q3 FY2026 adjusted EPS?", "expect": ["4.28"]},
+  {"q": "What was Bank of Montreal's Q3 FY2026 revenue?", "expect": ["9.96"]},
+  {"q": "Which Big 6 bank has the highest ROE and what is it?", "expect": ["Royal Bank", "17.9%"]},
+  {"q": "What was Royal Bank's revenue in Q3 FY2030?", "unanswerable": true},
+  {"q": "What is Shopify's stock price target set by the Federal Reserve?", "unanswerable": true}
+]
