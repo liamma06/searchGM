@@ -47,7 +47,9 @@ tables, `<details>` blocks), and the planner is given the new corpus overview. N
 Under every answer, **send to…** opens a panel to post it to **Slack**, save it as a **Notion** page, or create a
 **Google Doc** or **Google Slides** deck (`COMPOSIO_API_KEY`, via [Composio](https://composio.dev)). You pick the
 destination and the channel or parent page, choose what to include (question, answer, sources, caveats such as
-conflicts and missing data), and edit the exact text before it is sent. Each app keeps its own draft.
+conflicts and missing data), and edit the exact text before it is sent. Each app keeps its own draft. An
+**ask AI** box rewrites the draft from a plain instruction ("shorter", "only the ROE part", "bullet points for Slack")
+with an undo; it keeps numbers and citations as written and never sends anything.
 
 Sign-in to those apps is Composio-managed OAuth: each user connects an app once on a Composio-hosted page, Composio
 stores and refreshes the tokens, and this app only holds the Composio key. Calls are made as the signed-in user, so

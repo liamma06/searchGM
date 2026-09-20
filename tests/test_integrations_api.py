@@ -57,7 +57,7 @@ def env(monkeypatch):
     monkeypatch.setattr(settings, "composio_api_key", "test-key")
     monkeypatch.setattr(integrations, "_composio", fake)
     integrations._auth_ids.clear()
-    for lim in (auth.login_failures, auth.signups, auth.asks, integrations.sends):
+    for lim in (auth.login_failures, auth.signups, auth.asks, integrations.sends, integrations.rewrites):
         lim.hits.clear()
     client = TestClient(main.app)
     user = client.post("/auth/signup", json={"email": "a@example.com", "password": "correct horse", "name": "Ann"}, headers=H).json()
@@ -171,3 +171,35 @@ def test_markdown_to_notion_blocks():
     assert any(t.get("annotations", {}).get("code") for t in para)
     long = integrations.md_to_notion_blocks("y" * 4500)[0]["paragraph"]["rich_text"]
     assert [len(t["text"]["content"]) for t in long] == [2000, 2000, 500]  # Notion's per-text limit
+
+
+def test_rewrite_changes_the_draft_without_sending_anything(env, monkeypatch):
+    client, fake, user = env
+    seen = {}
+
+    async def fake_llm(system, user_msg, model=None, **kw):
+        seen.update(system=system, user=user_msg, model=model)
+        return {"text": "RBC ROE: 17.9% [1]"}
+
+    monkeypatch.setattr(integrations, "chat_json", fake_llm)
+    r = client.post("/api/integrations/slack/rewrite", json={"markdown": "Long answer about RBC ROE 17.9% [1] and more.", "instruction": "only the ROE part"}, headers=H)
+    assert r.status_code == 200 and r.json() == {"markdown": "RBC ROE: 17.9% [1]"}
+    assert "only the ROE part" in seen["user"] and "Long answer" in seen["user"] and "Slack" in seen["system"]
+    assert not [c for c in fake.calls if c[0].startswith("SLACK_SEND")]  # rewriting never posts anything
+
+
+def test_rewrite_validates_and_fails_politely(env, monkeypatch):
+    client, fake, user = env
+    assert client.post("/api/integrations/slack/rewrite", json={"markdown": "x", "instruction": "y"}).status_code == 403  # needs the CSRF header
+    assert client.post("/api/integrations/slack/rewrite", json={"markdown": "  ", "instruction": "shorter"}, headers=H).status_code == 400
+    assert client.post("/api/integrations/slack/rewrite", json={"markdown": "x", "instruction": " "}, headers=H).status_code == 400
+    assert client.post("/api/integrations/nope/rewrite", json={"markdown": "x", "instruction": "y"}, headers=H).status_code == 404
+
+    async def boom(*a, **k):
+        raise RuntimeError("model down")
+
+    monkeypatch.setattr(integrations, "chat_json", boom)
+    r = client.post("/api/integrations/notion/rewrite", json={"markdown": "x", "instruction": "shorter"}, headers=H)
+    assert r.status_code == 502 and "by hand" in r.json()["detail"]
+    anon = TestClient(client.app)
+    assert anon.post("/api/integrations/slack/rewrite", json={"markdown": "x", "instruction": "y"}, headers=H).status_code == 401

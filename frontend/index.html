@@ -215,6 +215,8 @@ svg.focus .ge:not(.on){opacity:.07}svg.focus .gn:not(.on){opacity:.22}
 .sm-head{display:flex;justify-content:space-between;align-items:baseline;font:600 13px var(--mono);color:var(--white)}
 .sm-tabs{margin:0}.sm-tabs button{padding-right:16px}
 .sm-note{color:var(--muted);max-width:60ch}
+.deepnote{font:12px var(--mono);color:var(--muted);margin-top:6px}
+.sm-ai input{flex:1;min-width:200px}
 .app-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
 .app-card{border:1px solid var(--line);background:var(--panel);padding:12px 14px;display:flex;flex-direction:column;gap:8px}
 .app-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}.app-top b{color:var(--white)}
@@ -950,7 +952,8 @@ function renderApps(){
 
 async function openSend(snap, answerText){
   sm = { snap, answer: answerText, app: 'slack', apps: [], targets: [], target: '', title: (snap.question || 'Answer from signal').slice(0, 90),
-         opts: { question: true, answer: true, sources: true, caveats: true }, drafts: {}, dirty: false, md: '', msg: '', ok: false, url: '', waiting: false, poll: null, busy: false };
+         opts: { question: true, answer: true, sources: true, caveats: true }, drafts: {}, dirty: false, md: '', msg: '', ok: false, url: '', waiting: false, poll: null, busy: false,
+         ai: '', aiMsg: '', aiBusy: false, undo: [] };
   sm.md = buildContent();
   $('#sendm').hidden = false; renderSend();
   await refreshApps();
@@ -1017,23 +1020,46 @@ function renderSend(){
       <div class="sm-row"><label for="sm-title">title</label><input id="sm-title" value="${esc(sm.title)}" maxlength="200"></div>
       <div class="sm-row"><span>include</span>${chk('question', 'question')}${chk('answer', 'answer')}${chk('sources', 'sources')}${chk('caveats', 'caveats')}</div>
       <div class="sm-field"><label for="sm-md">${sm.app === 'googleslides' ? 'slides (--- starts a new slide)' : 'content'}: edit anything before it is sent</label><textarea id="sm-md" spellcheck="false">${esc(sm.md)}</textarea></div>
-      <div class="sm-row"><button type="button" class="primary" id="sm-send"${sm.busy ? ' disabled' : ''}>send to ${name.toLowerCase()}</button>${sm.dirty ? '<button type="button" class="linkbtn" id="sm-reset">reset to generated text</button>' : ''}<button type="button" class="linkbtn" id="sm-disc">disconnect ${name.toLowerCase()}</button></div>`;
+      <div class="sm-row sm-ai"><label for="sm-ai">ask AI</label><input id="sm-ai" value="${esc(sm.ai)}" placeholder="shorter, only the ROE part, bullet points, more formal…" maxlength="300"${sm.aiBusy ? ' disabled' : ''}><button type="button" id="sm-ai-go"${sm.aiBusy ? ' disabled' : ''}>change it</button>${sm.undo.length ? '<button type="button" class="linkbtn" id="sm-undo">undo</button>' : ''}</div>
+      ${sm.aiMsg ? `<div class="sm-note">${esc(sm.aiMsg)}</div>` : ''}
+      <div class="sm-row"><button type="button" class="primary" id="sm-send"${sm.busy || sm.aiBusy ? ' disabled' : ''}>send to ${name.toLowerCase()}</button>${sm.dirty ? '<button type="button" class="linkbtn" id="sm-reset">reset to generated text</button>' : ''}<button type="button" class="linkbtn" id="sm-disc">disconnect ${name.toLowerCase()}</button></div>`;
   }
   const result = sm.msg ? `<div class="sm-result ${sm.ok ? 'ok' : (sm.busy ? '' : 'bad')}">${esc(sm.msg)}${sm.url ? ` <a href="${esc(sm.url)}" target="_blank" rel="noopener noreferrer">open</a>` : ''}</div>` : '';
   $('#sendm').innerHTML = `<div class="sm-panel" role="dialog" aria-label="Send to another app"><div class="sm-head"><b>send to…</b><button type="button" class="linkbtn" id="sm-close">close</button></div>
     <div class="gtabs sm-tabs">${tabs}</div>${body}${result}</div>`;
   const on = (id, fn) => { const el = $(id); if (el) el.onclick = fn; };
+  on('#sm-ai-go', aiRewrite); on('#sm-undo', undoRewrite);
+  if ($('#sm-ai')){ $('#sm-ai').oninput = e => { sm.ai = e.target.value; }; $('#sm-ai').onkeydown = e => { if (e.key === 'Enter'){ e.preventDefault(); aiRewrite(); } }; }
   on('#sm-close', closeSend); on('#sm-connect', connectApp); on('#sm-disc', disconnectApp); on('#sm-send', sendNow); on('#sm-reload', loadTargets);
   on('#sm-reset', () => { sm.dirty = false; regenerate(); renderSend(); });
   document.querySelectorAll('#sendm [data-app]').forEach(b => b.onclick = () => {
     sm.drafts[sm.app] = { md: sm.md, dirty: sm.dirty };  // each app keeps its own draft: slides need a different shape than a Slack message
-    sm.app = b.dataset.app; sm.target = ''; sm.targets = []; sm.msg = ''; sm.url = '';
+    sm.app = b.dataset.app; sm.target = ''; sm.targets = []; sm.msg = ''; sm.url = ''; sm.undo = []; sm.aiMsg = ''; sm.ai = '';
     const d = sm.drafts[sm.app]; if (d){ sm.md = d.md; sm.dirty = d.dirty; } else { sm.dirty = false; sm.md = buildContent(); }
     renderSend(); if (smApp() && smApp().connected && smApp().target) loadTargets(); });
   document.querySelectorAll('#sendm [data-opt]').forEach(c => c.onchange = () => { sm.opts[c.dataset.opt] = c.checked; regenerate(); });
   if ($('#sm-target')) $('#sm-target').onchange = e => { sm.target = e.target.value; };
   if ($('#sm-title')) $('#sm-title').oninput = e => { sm.title = e.target.value; regenerate(); };
   if ($('#sm-md')) $('#sm-md').oninput = e => { sm.md = e.target.value; if (!sm.dirty){ sm.dirty = true; renderSendKeepFocus(); } };
+}
+async function aiRewrite(){
+  const inst = sm.ai.trim(); if (!inst || sm.aiBusy) return;
+  const before = $('#sm-md').value; sm.md = before;
+  sm.aiBusy = true; sm.aiMsg = 'rewriting…'; renderSend();
+  let r = null, j = {};
+  try{
+    r = await fetch(`/api/integrations/${sm.app}/rewrite`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ markdown: before, instruction: inst }) });
+    j = await r.json().catch(() => ({}));
+  }catch(e){ r = null; }
+  if (!sm) return;
+  sm.aiBusy = false;
+  if (r && r.ok){ sm.undo.push({ md: before, dirty: sm.dirty }); sm.md = j.markdown; sm.dirty = true; sm.ai = ''; sm.aiMsg = 'Changed. Read it over, then send.'; }
+  else sm.aiMsg = (j && j.detail) || 'Could not reach the server.';
+  renderSend();
+}
+function undoRewrite(){
+  const u = sm.undo.pop(); if (!u) return;
+  sm.md = u.md; sm.dirty = u.dirty; sm.aiMsg = 'Undone.'; renderSend();
 }
 function renderSendKeepFocus(){  // show the "reset" link without losing the caret
   const t = $('#sm-md'), start = t.selectionStart, end = t.selectionEnd, top = t.scrollTop, val = t.value;
@@ -1154,11 +1180,11 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#chats
 $('#form').addEventListener('submit', e => { e.preventDefault(); const q = $('#q').value.trim(); if (q) go('/api/ask', {question:q, flow: $('#deep').checked ? 'team' : null}, q); });
 $('#q').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); $('#form').requestSubmit(); } });
 
-function beginRun(label){
+function beginRun(label, deep){
   cites = {};
   $('#empty')?.remove();
   const thread = $('#thread');
-  thread.insertAdjacentHTML('beforeend', `<div class="q">${esc(label)}</div><div class="a"><div class="body md cursor"></div><div class="badges"></div><div class="act"><button type="button" class="linkbtn sendbtn" hidden>send to…</button></div></div>`);
+  thread.insertAdjacentHTML('beforeend', `<div class="q">${esc(label)}</div><div class="a"><div class="body md cursor"></div><div class="badges"></div><div class="deepnote" hidden></div><div class="act"><button type="button" class="linkbtn sendbtn" hidden>send to…</button></div></div>`);
   const answer = thread.querySelector('.a:last-child'), bodyEl = answer.querySelector('.body'), badges = answer.querySelector('.badges');
   thread.scrollTop = thread.scrollHeight;
   $('#pane-sources').innerHTML = '';
@@ -1183,6 +1209,7 @@ function beginRun(label){
       case 'stage': setStep(ev.agent, 'run'); railStage(ev.agent, ev.t); break;
       case 'plan':
         clues = ev.clues || [];
+        if (deep && ev.flow !== 'team'){ const n = answer.querySelector('.deepnote'); n.textContent = 'Deep team analysis only applies to “which company…” questions across several companies. This one ran the standard way.'; n.hidden = false; }
         if (ev.flow === 'team' && clues.length){ order = ['planner','analysts','periods','verifier','writer']; drawSteps(); }
         if (clues.length) add(`<div class="card"><h5>Leader: clues to match · ${ev.t} ms</h5>${clues.map((c, i) => `<div class="sq"><b>${i + 1}.</b> ${esc(c)}</div>`).join('')}<div style="color:var(--muted);margin-top:6px">${ev.roster.length} analysts: ${ev.roster.map(esc).join(', ')}</div></div>`);
         add(`<div class="card"><h5>Planner · ${ev.t} ms</h5>${ev.interpretation ? `<div style="margin-bottom:6px;color:var(--muted)">${esc(ev.interpretation)}</div>` : ''}${ev.sub_queries.map(s => `<div class="sq">${esc(s.query)} ${(s.entities||[]).map(e => `<span class="tag">${esc(e)}</span>`).join('')}<div style="color:var(--muted)">${esc(s.purpose || '')}</div></div>`).join('')}</div>`);
@@ -1246,7 +1273,7 @@ async function go(url, body, label){
   if (busy) return;
   busy = true; $('#q').value = ''; $('#send').disabled = true;
   currentTitle = currentTitle || label;
-  const run = beginRun(label);
+  const run = beginRun(label, body && body.flow === 'team');
   try{
     const r = await fetch(url, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({...body, chat_id: currentChatId})});
     if (!r.ok){ let m = r.statusText; try{ m = (await r.json()).detail || m; }catch(e){} throw new Error(m); }
