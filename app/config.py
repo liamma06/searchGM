@@ -20,6 +20,7 @@ class Settings:
     sentry_environment = os.getenv("SENTRY_ENVIRONMENT", "hackathon")
     gptzero_api_key = os.getenv("GPTZERO_API_KEY", "").strip()
     openrouter_api_key = os.getenv("OPENROUTER_API_KEY", "").strip()
+    composio_api_key = os.getenv("COMPOSIO_API_KEY", "").strip()
     # independent verifier: a different model family than the OpenAI agents, served via OpenRouter
     # reasoning is switched off for it (see verifier.py): with reasoning on it takes ~95 s on real prompts vs ~7 s
     verifier_model = os.getenv("VERIFIER_MODEL", "deepseek/deepseek-v4.1-flash")

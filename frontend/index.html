@@ -31,6 +31,12 @@ header{font:12px/1.5 var(--mono);display:flex;flex-wrap:wrap;gap:4px 16px;align-
 .pill{font:12px var(--mono);padding:0;border:0;color:var(--muted);white-space:nowrap}
 .pill::before{content:"["}.pill::after{content:"]"}
 .pill.ok{color:var(--ok)}.pill.warn{color:var(--warn)}.pill.bad{color:var(--bad)}
+.pills{display:inline-block;width:min(250px,100%);overflow:hidden;white-space:nowrap;vertical-align:middle;-webkit-mask-image:linear-gradient(90deg,transparent,#000 9%,#000 91%,transparent);mask-image:linear-gradient(90deg,transparent,#000 9%,#000 91%,transparent)}
+.ptrack{display:inline-flex;width:max-content;animation:pillroll 20s linear infinite}
+.ptrack .pill{margin-right:26px}
+.pills:hover .ptrack{animation-play-state:paused}
+@keyframes pillroll{from{transform:translateX(calc(-1 * var(--w,0px)))}to{transform:translateX(0)}}
+@media (prefers-reduced-motion:reduce){.ptrack{animation:none}.pills{overflow-x:auto;scrollbar-width:none;-webkit-mask-image:none;mask-image:none}}
 .loader{margin-left:auto;display:flex;gap:6px;align-items:center;min-width:280px;flex:1;max-width:560px}
 .loader input{flex:1;min-width:0}
 header input,header button{font:13px var(--sans)}
@@ -62,7 +68,6 @@ section.chat{display:flex;flex-direction:column;min-height:0;border-right:1px so
 form.ask{display:flex;gap:8px;align-items:flex-start;padding:10px 14px;border-top:1px solid var(--line);background:var(--panel);flex-wrap:wrap}
 form.ask::before{content:"$";font-family:var(--mono);color:var(--white);font-weight:600;padding-top:6px}
 form.ask textarea{flex:1;min-width:200px;resize:none;height:36px;font-size:14px}
-.brief{display:flex;gap:6px}
 .deep{color:var(--muted);display:flex;align-items:center;gap:6px;cursor:pointer;white-space:nowrap}
 
 .side{display:flex;flex-direction:column;min-height:0;background:var(--bg)}
@@ -169,32 +174,83 @@ svg.focus .ge:not(.on){opacity:.07}svg.focus .gn:not(.on){opacity:.22}
 .gthumb text,.gthumb title{display:none}
 .gthumb .pop{animation:none}
 /* sign-in screen, history, chat bar, shared view */
-#gate{position:fixed;inset:0;z-index:50;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:16px}
-#gate-form{width:min(360px,100%);display:flex;flex-direction:column;gap:10px}
-#gate-form .gt{font:700 20px var(--mono);color:var(--white)}
-#gate-form .gt::before{content:"$ ";color:var(--muted);font-weight:400}
-#gate-form .gs{color:var(--muted);margin-bottom:6px}
 .gtabs{display:flex;border-bottom:1px solid var(--line);margin-bottom:4px}
 .gtabs button{border:0;border-bottom:1px solid transparent;margin-bottom:-1px;padding:6px 14px 6px 0;color:var(--muted);text-transform:lowercase}
 .gtabs button.on{color:var(--white);border-bottom-color:var(--white)}
 .gtabs button:hover:not(:disabled){background:none;color:var(--white)}
 #gate-form input{padding:8px 10px;font:14px var(--sans)}
 #gate-err{min-height:1.4em;font-size:13px}
-#gate-go{padding:8px 12px;font-size:14px}
 .linkbtn{border:0;padding:0;background:none;color:var(--muted);font:12px var(--mono)}
 .linkbtn:hover:not(:disabled){background:none;color:var(--white);text-decoration:underline}
 #chatbar{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;padding:6px 18px;border-bottom:1px solid var(--line);font:12px var(--mono);color:var(--muted)}
 #chatbar .ct{color:var(--white);font-weight:600;max-width:46ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #chatbar .cm{flex:1;color:var(--muted)}
 #chatbar button{padding:1px 10px;font:12px var(--mono)}
-.hrow{margin-bottom:10px}.hrow button{font:12px var(--mono)}
-.hitem{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 10px;padding:7px 0;border-bottom:1px dashed var(--line);cursor:pointer}
-.hitem:hover .ht,.hitem.cur .ht{color:var(--white)}
-.hitem .ht{flex:1 1 60%;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.hitem .hm{font:11px var(--mono);color:var(--muted)}
-.hitem .hdel{border:0;padding:0 6px;color:var(--muted);background:none;font-size:16px;line-height:1}
-.hitem .hdel:hover:not(:disabled){background:none;color:var(--bad)}
-.shared form.ask,.shared .loader,.shared #tab-quality,.shared .tab[data-p=history],.shared #pill-backend,.shared #pill-sentry,.shared #pill-gz,.shared #pill-user,.shared #signout{display:none!important}
+.shared form.ask,.shared .loader,.shared #tab-quality,.shared #pill-backend,.shared #pill-sentry,.shared #pill-gz,.shared #pill-user,.shared #signout{display:none!important}
+/* sign-in screen (unchanged look) */
+#gate{position:fixed;inset:0;z-index:50;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:16px}
+#gate-home{position:absolute;top:14px;left:18px}
+#gate-form{width:min(360px,100%);display:flex;flex-direction:column;gap:10px}
+#gate-form .gt{font:700 20px var(--mono);color:var(--white)}
+#gate-form .gt::before{content:"$ ";color:var(--muted);font-weight:400}
+#gate-form .gs{color:var(--muted);margin-bottom:6px}
+#gate-go{padding:8px 12px;font-size:14px}
+/* home screen: Shape Waves background (React Bits) with the word carved out of it */
+#home{position:fixed;inset:0;z-index:60;background:var(--bg);overflow:hidden}
+#home-bg{position:absolute;inset:0}
+#home-scrim{position:absolute;left:0;right:0;bottom:0;height:64%;background:linear-gradient(to top,var(--bg) 14%,rgba(10,10,10,.88) 46%,rgba(10,10,10,0));pointer-events:none}
+#home-copy{position:absolute;left:0;bottom:0;width:min(600px,100%);padding:0 clamp(20px,5vw,64px) clamp(28px,7vh,64px);display:flex;flex-direction:column;gap:12px}
+#home-copy .wordmark{font:700 clamp(44px,9vw,104px)/1 var(--mono);color:var(--white);margin:0;letter-spacing:-.03em}
+#home:not(.nogpu) .wordmark{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}  /* the effect draws the word itself */
+#home-copy .lede{font:600 clamp(18px,2.1vw,24px)/1.35 var(--sans);color:var(--white);margin:0}
+#home-copy .sub{color:var(--muted);margin:0;max-width:46ch}
+#home-cta{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin-top:8px}
+#home-cta button{padding:9px 18px;font-size:14px}
+#home-cta .who{color:var(--muted);font:12px var(--mono)}
+#home.nogpu #home-bg{background-image:radial-gradient(circle,#3c3c3c 1px,transparent 1.7px);background-size:14px 14px;-webkit-mask-image:radial-gradient(ellipse at 50% 35%,#000 15%,transparent 72%);mask-image:radial-gradient(ellipse at 50% 35%,#000 15%,transparent 72%)}
+.brand{cursor:pointer}
+/* send to other apps */
+#sendm{position:fixed;inset:0;z-index:70;background:rgba(0,0,0,.68);display:flex;align-items:flex-start;justify-content:center;padding:6vh 16px;overflow:auto}
+.sm-panel{width:min(720px,100%);background:var(--bg);border:1px solid var(--line);padding:16px 20px 20px;display:flex;flex-direction:column;gap:14px}
+.sm-head{display:flex;justify-content:space-between;align-items:baseline;font:600 13px var(--mono);color:var(--white)}
+.sm-tabs{margin:0}.sm-tabs button{padding-right:16px}
+.sm-note{color:var(--muted);max-width:60ch}
+.app-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.app-card{border:1px solid var(--line);background:var(--panel);padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.app-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}.app-top b{color:var(--white)}
+.sm-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px}
+.sm-row label,.sm-row>span:first-child{color:var(--muted);font:12px var(--mono);min-width:9ch}
+.sm-row select,.sm-row input:not([type=checkbox]){flex:1;min-width:200px}
+.sm-chk{display:flex;align-items:center;gap:6px;color:var(--text)!important;font:13px var(--sans)!important;min-width:0!important;cursor:pointer}
+.sm-field{display:flex;flex-direction:column;gap:6px}.sm-field label{color:var(--muted);font:12px var(--mono)}
+.sm-field textarea{min-height:260px;font:12.5px/1.55 var(--mono);resize:vertical;width:100%}
+.sm-result{font:13px var(--sans)}.sm-result.ok{color:var(--ok)}.sm-result.bad{color:var(--bad)}.sm-result a{color:var(--accent2)}
+.act{margin-top:2px}
+/* chats page */
+#chats{position:fixed;inset:0;z-index:40;background:var(--bg);overflow:auto}
+.cp-wrap{max-width:860px;margin:0 auto;padding:18px clamp(16px,4vw,32px) 60px}
+.cp-tr{display:flex;gap:18px}
+.cp-top{margin-bottom:18px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+.cp-head{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin-bottom:14px}
+.cp-head h1{font:700 22px var(--mono);color:var(--white);margin:0;flex:0 0 auto}
+.cp-head h1::before{content:"$ ";color:var(--muted);font-weight:400}
+.cp-head input{flex:1;min-width:200px;padding:8px 10px;font:14px var(--sans)}
+.cp-bar{position:sticky;top:0;z-index:1;background:var(--panel);border:1px solid var(--line);padding:8px 12px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin-bottom:10px;font:12px var(--mono)}
+.cp-group{font:12px var(--mono);color:var(--muted);margin:22px 0 6px}
+.cp-row{display:flex;gap:12px;align-items:flex-start;padding:10px 6px;border-bottom:1px solid var(--line)}
+.cp-row:hover{background:var(--panel)}.cp-row.sel{background:var(--sel)}
+.cp-check{margin-top:5px;accent-color:var(--white);flex:0 0 auto}
+.cp-main{flex:1;min-width:0;cursor:pointer}
+.cp-title{color:var(--white);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cp-prev{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cp-meta{font:11px var(--mono);color:var(--muted);margin-top:2px}.cp-meta .ok{color:var(--ok)}
+.cp-actions{display:flex;flex-wrap:wrap;gap:4px 14px;flex:0 0 auto;opacity:0}
+.cp-row:hover .cp-actions,.cp-row:focus-within .cp-actions{opacity:1}
+.cp-actions .danger:hover:not(:disabled){color:var(--bad);background:none}
+.cp-empty{color:var(--muted);padding:40px 0}
+input.cp-rename{width:100%;padding:4px 8px;font:14px var(--sans)}
+@media (hover:none){.cp-actions{opacity:1}}
+@media (max-width:640px){.cp-row{flex-wrap:wrap}.cp-actions{width:100%;padding-left:28px;opacity:1}}
 [hidden]{display:none!important}
 @media (prefers-reduced-motion:reduce){*{animation:none!important}}
 </style>
@@ -202,11 +258,15 @@ svg.focus .ge:not(.on){opacity:.07}svg.focus .gn:not(.on){opacity:.22}
 <body>
 <header>
   <div class="brand">signal</div>
-  <span class="pill" id="pill-data">loading…</span>
-  <span class="pill" id="pill-backend">search: –</span>
-  <span class="pill" id="pill-sentry" hidden>Sentry on</span>
-  <span class="pill" id="pill-gz" hidden>GPTZero on</span>
+  <span class="pills" id="pills" title="Status. Pauses when you point at it."><span class="ptrack" id="ptrack"></span></span>
+  <span id="pills-src" hidden>
+    <span class="pill" id="pill-data">loading…</span>
+    <span class="pill" id="pill-backend">search: –</span>
+    <span class="pill" id="pill-sentry" hidden>Sentry on</span>
+    <span class="pill" id="pill-gz" hidden>GPTZero on</span>
+  </span>
   <span class="pill" id="pill-user" hidden></span>
+  <button type="button" class="linkbtn" id="appsbtn" hidden>apps</button>
   <button type="button" class="linkbtn" id="signout" hidden>sign out</button>
   <div class="loader">
     <input id="mcp" placeholder="MCP server URL (Phase 2: paste the new dataset server)" spellcheck="false">
@@ -218,29 +278,38 @@ svg.focus .ge:not(.on){opacity:.07}svg.focus .gn:not(.on){opacity:.22}
     <div id="chatbar" hidden></div>
     <div id="thread">
       <div class="empty" id="empty">
-        <h2>Ask anything about the research corpus</h2>
-        <div>Every figure is cited to the exact line it came from. Conflicting or missing data is flagged, not smoothed over.</div>
+        <h2>Ask anything about your data</h2>
+        <div>Every figure is cited to the exact line it came from. Conflicting or missing data is flagged.</div>
         <div class="chips" id="examples"></div>
       </div>
     </div>
     <form class="ask" id="form">
-      <textarea id="q" placeholder="Ask about the research corpus…" rows="1"></textarea>
+      <textarea id="q" placeholder="Ask about your data…" rows="1"></textarea>
       <button class="primary" id="send">Ask</button>
       <label class="deep" title="Runs one analyst agent per company, per-quarter analysts, and an independent cross-model verifier. Slower, but shows the agent team at work."><input type="checkbox" id="deep"> Deep team analysis</label>
-      <div class="brief"><select id="entity"></select><button type="button" id="briefBtn" title="Generate a cited analyst brief">Analyst brief</button></div>
     </form>
   </section>
   <section class="side">
-    <div class="tabs"><button class="tab on" data-p="graph">Graph</button><button class="tab" data-p="sources">Sources</button><button class="tab" data-p="trace">Agent trace</button><button class="tab" data-p="quality" id="tab-quality" hidden>Data quality</button><button class="tab" data-p="history">History</button><button class="tabx" id="collapseBtn" title="Shrink back to the tracker">collapse ▸</button></div>
+    <div class="tabs"><button class="tab on" data-p="graph">Graph</button><button class="tab" data-p="sources">Sources</button><button class="tab" data-p="trace">Agent trace</button><button class="tab" data-p="quality" id="tab-quality" hidden>Data quality</button><button class="tabx" id="collapseBtn" title="Shrink back to the tracker">collapse ▸</button></div>
     <div class="rail" id="rail"></div>
     <div class="pane on" id="pane-graph"><div class="card" id="gempty" style="color:var(--muted)">Ask a question to see how the answer was built: the queries, the evidence found, and what got cited.</div><svg id="graph" hidden></svg><div class="glegend" id="glegend" hidden><span><i></i>supports</span><span><i class="no"></i>conflict</span><span><b></b>retrieved</span><span><i class="out"></i>cited in answer</span></div></div>
     <div class="pane" id="pane-sources"><div class="card" style="color:var(--muted)">Click a citation like <span class="cite">1</span> in an answer to see the exact source lines.</div></div>
     <div class="pane" id="pane-quality"></div>
-    <div class="pane" id="pane-history"></div>
     <div class="pane" id="pane-trace"><div class="card" style="color:var(--muted)">Planner → Retriever → Verifier → Writer. Each step appears here live.</div></div>
   </section>
 </main>
+<div id="home" hidden>
+  <div id="home-bg" aria-hidden="true"></div>
+  <div id="home-scrim" aria-hidden="true"></div>
+  <div id="home-copy">
+    <h1 class="wordmark">signal</h1>
+    <p class="lede">Ask questions of any data and get answers.</p>
+    <p class="sub">Every figure links to the exact line it came from. Conflicting or missing data is flagged.</p>
+    <div id="home-cta"></div>
+  </div>
+</div>
 <div id="gate" hidden>
+  <button type="button" class="linkbtn" id="gate-home">← home</button>
   <form id="gate-form">
     <div class="gt">signal</div>
     <div class="gs">Sign in to ask questions and keep your history.</div>
@@ -252,6 +321,23 @@ svg.focus .ge:not(.on){opacity:.07}svg.focus .gn:not(.on){opacity:.22}
     <button class="primary" id="gate-go">sign in</button>
   </form>
 </div>
+<div id="chats" hidden>
+  <div class="cp-wrap">
+    <div class="cp-top"><button type="button" class="linkbtn" id="cp-back">← back to signal</button><span class="cp-tr"><button type="button" class="linkbtn" id="cp-apps" hidden>apps</button><button type="button" class="linkbtn" id="cp-signout" hidden>sign out</button></span></div>
+    <div class="cp-head">
+      <h1>chats</h1>
+      <input id="cp-search" type="search" placeholder="search your chats…" autocomplete="off" aria-label="Search your chats">
+      <button type="button" id="cp-new">+ new chat</button>
+    </div>
+    <div class="cp-bar" id="cp-bar" hidden>
+      <span id="cp-count"></span>
+      <button type="button" id="cp-delsel">delete selected</button>
+      <button type="button" class="linkbtn" id="cp-clear">clear selection</button>
+    </div>
+    <div id="cp-list"></div>
+  </div>
+</div>
+<div id="sendm" hidden></div>
 <script src="/static/vendor/marked.min.js"></script>
 <script src="/static/vendor/purify.min.js"></script>
 <script>
@@ -269,15 +355,13 @@ let currentChatId = null, currentTitle = '', currentShared = false, shareMsg = '
 const _fetch = window.fetch.bind(window);
 window.fetch = (url, opts = {}) => {
   if ((opts.method || 'GET').toUpperCase() !== 'GET') opts = { ...opts, headers: { 'X-Requested-With': 'fetch', ...(opts.headers || {}) } };
-  return _fetch(url, opts).then(r => { if (r.status === 401 && !String(url).startsWith('/auth/') && !SHARED) showGate(); return r; });
+  return _fetch(url, opts).then(r => { if (r.status === 401 && !String(url).startsWith('/auth/') && !SHARED) showGate('login'); return r; });
 };
 
 const ago = t => { const s = Math.max(1, Math.round(Date.now() / 1000 - t)); return s < 90 ? 'just now' : s < 5400 ? Math.round(s / 60) + ' min ago' : s < 129600 ? Math.round(s / 3600) + ' h ago' : Math.round(s / 86400) + ' d ago'; };
 
 // ----- sign-in screen -----
 let gateMode = 'login';
-function showGate(){ $('#gate').hidden = false; }
-function hideGate(){ $('#gate').hidden = true; }
 function setGateMode(m){
   gateMode = m;
   $('#gate-login').classList.toggle('on', m === 'login'); $('#gate-signup').classList.toggle('on', m === 'signup');
@@ -286,6 +370,64 @@ function setGateMode(m){
 }
 $('#gate-login').onclick = () => setGateMode('login');
 $('#gate-signup').onclick = () => setGateMode('signup');
+// ----- sign-in screen (the plain box) -----
+function showGate(mode){ $('#gate').hidden = false; setGateMode(mode || 'login'); }
+function hideGate(){ $('#gate').hidden = true; }
+$('#gate-home').onclick = () => { hideGate(); showHome(); };
+
+// ----- home screen -----
+let wavesUnmount = null, wavesLoading = false, wavesScript = null;
+function showHome(){ $('#home').hidden = false; renderHomeCta(); startWaves(); }
+function hideHome(){
+  $('#home').hidden = true;
+  if (wavesUnmount){ wavesUnmount(); wavesUnmount = null; }  // stop the GPU work while the app is showing
+}
+function renderHomeCta(){
+  const c = $('#home-cta');
+  c.innerHTML = (ME || !AUTH)
+    ? `<button type="button" class="primary" id="cta-open">open signal</button>${ME ? '<button type="button" id="cta-chats">my chats</button>' : ''}${ME ? `<span class="who">signed in as ${esc(ME.name)}</span>` : ''}`
+    : `<button type="button" class="primary" id="cta-signup">create account</button><button type="button" id="cta-signin">sign in</button>`;
+  if ($('#cta-open')) $('#cta-open').onclick = enterApp;
+  if ($('#cta-chats')) $('#cta-chats').onclick = () => { enterApp(); showChats(); };
+  if ($('#cta-signup')) $('#cta-signup').onclick = () => { hideHome(); showGate('signup'); };
+  if ($('#cta-signin')) $('#cta-signin').onclick = () => { hideHome(); showGate('login'); };
+}
+function enterApp(){
+  hideHome(); history.replaceState(null, '', '#app');  // a reload inside the app skips the home screen
+  if (AUTH && !ME){ showGate('login'); return; }
+  hideGate(); startApp();
+}
+$('.brand').onclick = () => {  // signed in: the wordmark opens your chats; signed out (or a shared link): the home screen
+  if (!SHARED && (ME || !AUTH)){ enterApp(); showChats(); return; }
+  history.replaceState(null, '', location.pathname); hideGate(); hideChats(); showHome();
+};
+
+// The background is a WebGPU effect (React Bits "Shape Waves"), loaded only when the home screen is shown.
+// Without WebGPU, or if it fails to start, the home screen falls back to a static dot grid and a plain wordmark.
+function loadWavesAssets(){
+  if (wavesScript) return wavesScript;
+  const css = document.createElement('link'); css.rel = 'stylesheet'; css.href = '/static/vendor/shapewaves.css'; document.head.appendChild(css);
+  wavesScript = new Promise((ok, fail) => { const s = document.createElement('script'); s.src = '/static/vendor/shapewaves.js'; s.onload = ok; s.onerror = fail; document.head.appendChild(s); });
+  return wavesScript;
+}
+async function startWaves(){
+  const home = $('#home');
+  if (wavesUnmount || wavesLoading) return;
+  if (!navigator.gpu){ home.classList.add('nogpu'); return; }
+  wavesLoading = true;
+  try{
+    await loadWavesAssets();
+    await document.fonts.load('600 80px "IBM Plex Mono"');  // the word is painted from this font, so it must be loaded first
+    if (home.hidden) return;
+    wavesUnmount = window.SignalWaves.mount($('#home-bg'), {
+      text: 'signal', fontFamily: '"IBM Plex Mono", ui-monospace, monospace', fontWeight: 600, textSize: 0.42,
+      shapes: 'mixed', cellSize: innerWidth < 640 ? 6 : 10, dotSize: 0.75,  // finer cells on phones so the word stays legible color: '#8a8a8a', hoverColor: '#ffffff', backgroundColor: '#0a0a0a',
+      brightness: 0.4, fade: 0.25, glow: 0.3, intro: true,
+      onError: err => { console.warn('Shape Waves unavailable, using the static page:', err && err.message || err); home.classList.add('nogpu'); if (wavesUnmount){ wavesUnmount(); wavesUnmount = null; } },
+    });
+  }catch(e){ console.warn('Shape Waves failed to start:', e); home.classList.add('nogpu'); }
+  finally{ wavesLoading = false; }
+}
 $('#gate-form').onsubmit = async e => {
   e.preventDefault(); $('#gate-err').textContent = ''; $('#gate-go').disabled = true;
   try{
@@ -293,41 +435,43 @@ $('#gate-form').onsubmit = async e => {
       body: JSON.stringify({ email: $('#g-email').value, password: $('#g-pass').value, name: $('#g-name').value }) });
     const j = await r.json();
     if (!r.ok){ $('#gate-err').textContent = j.detail || 'Something went wrong.'; return; }
-    ME = j; $('#g-pass').value = ''; hideGate(); showUser(); startApp();
+    const returning = gateMode === 'login';
+    ME = j; $('#g-pass').value = ''; hideGate(); showUser(); history.replaceState(null, '', '#app'); startApp();
+    if (returning) loadHistory().then(() => { if (CHATS.length) showChats(); });  // signing back in lands on your saved chats; a new account has none, so it opens the app
   }catch(err){ $('#gate-err').textContent = 'Could not reach the server.'; }
   finally{ $('#gate-go').disabled = false; }
 };
 function showUser(){
-  $('#pill-user').hidden = $('#signout').hidden = !(AUTH && ME);
+  $('#pill-user').hidden = $('#signout').hidden = $('#cp-signout').hidden = !(AUTH && ME);
   if (ME) $('#pill-user').textContent = ME.name;
 }
-$('#signout').onclick = async () => { await fetch('/auth/logout', { method: 'POST' }); location.reload(); };
+$('#signout').onclick = $('#cp-signout').onclick = async () => { await fetch('/auth/logout', { method: 'POST' }); history.replaceState(null, '', location.pathname); location.reload(); };
 
-// ----- history -----
+// ----- header status: a fixed-width strip where the status pills roll past in a loop -----
+let pillSig = '';
+function syncPills(){
+  const src = [...document.querySelectorAll('#pills-src .pill')].filter(p => !p.hidden);
+  const sig = src.map(p => p.className + '|' + p.textContent).join('\n');
+  if (sig === pillSig) return;  // only rebuild when something changed, so the roll is not restarted by every status poll
+  pillSig = sig;
+  const track = $('#ptrack'); track.textContent = '';
+  for (let n = 0; n < 3; n++) src.forEach(p => { const c = p.cloneNode(true); c.removeAttribute('id'); c.removeAttribute('hidden'); track.appendChild(c); });
+  requestAnimationFrame(() => { const w = track.scrollWidth / 3; track.style.setProperty('--w', w + 'px'); track.style.animationDuration = Math.max(10, w / 26) + 's'; });
+}
+new MutationObserver(syncPills).observe($('#pills-src'), { subtree: true, childList: true, characterData: true, attributes: true });
+syncPills();
+
+// ----- saved chats -----
 async function loadHistory(){
   if (SHARED) return;
-  try{ const r = await fetch('/api/chats'); if (!r.ok) return; CHATS = await r.json(); renderHistory(); renderRail(); }catch(e){}
+  try{ const r = await fetch('/api/chats'); if (!r.ok) return; CHATS = await r.json(); renderRail(); }catch(e){}
 }
-function renderHistory(){
-  const list = CHATS.map(c => `<div class="hitem${c.id === currentChatId ? ' cur' : ''}" data-id="${esc(c.id)}"><span class="ht">${esc(c.title)}</span><span class="hm">${ago(c.updated_at)}${c.runs > 1 ? ' · ' + c.runs + ' questions' : ''}${c.shared ? ' · shared' : ''}</span><button type="button" class="hdel" data-del="${esc(c.id)}" title="Delete this chat">×</button></div>`).join('');
-  $('#pane-history').innerHTML = `<div class="hrow"><button type="button" id="newChat">+ new chat</button></div>` + (list || '<div class="card" style="color:var(--muted)">No saved chats yet. Ask a question and it is saved here.</div>');
-}
-$('#pane-history').addEventListener('click', e => {
-  if (e.target.closest('#newChat')){ newChat(); return; }
-  const del = e.target.closest('[data-del]'); if (del){ deleteChat(del.dataset.del); return; }
-  const it = e.target.closest('.hitem'); if (it) openChat(it.dataset.id);
-});
 async function openChat(id){
   if (busy) return;
   const r = await fetch('/api/chats/' + encodeURIComponent(id)); if (!r.ok) return;
   const chat = await r.json();
   currentChatId = chat.id; currentTitle = chat.title; currentShared = chat.shared; shareMsg = '';
-  replayRuns(chat.runs); renderChatbar(); renderHistory();
-}
-async function deleteChat(id){
-  if (!confirm('Delete this chat? This cannot be undone.')) return;
-  const r = await fetch('/api/chats/' + encodeURIComponent(id), { method: 'DELETE' });
-  if (r.ok){ if (id === currentChatId) newChat(); loadHistory(); }
+  replayRuns(chat.runs); renderChatbar();
 }
 function newChat(){
   if (busy) return;
@@ -335,7 +479,7 @@ function newChat(){
   $('#thread').innerHTML = EMPTY_HTML; if (LAST_DOCS) renderExamples(LAST_DOCS);
   $('#pane-sources').innerHTML = PANE0.sources; $('#pane-trace').innerHTML = PANE0.trace;
   graphActive = false; G = null; $('#graph').setAttribute('hidden', ''); $('#gempty').hidden = false; $('#glegend').hidden = true;
-  railReset([]); renderChatbar(); renderHistory();
+  railReset([]); renderChatbar();
 }
 
 // ----- chat bar: title, share, new chat -----
@@ -364,12 +508,14 @@ async function boot(){
   if (SHARED) return bootShared();
   let me; try{ me = await (await fetch('/api/me')).json(); }catch(e){ return; }
   ME = me.user; AUTH = me.auth_required;
-  if (AUTH && !ME){ showGate(); return; }
-  hideGate(); showUser(); startApp();
+  showUser();
+  if (location.hash === '#chats' && (ME || !AUTH)){ enterApp(); showChats(); return; }
+  if (location.hash === '#app') return enterApp();  // reloading inside the app skips the home screen
+  showHome();
 }
 async function bootShared(){
   document.body.classList.add('shared');
-  $('#pill-data').textContent = 'shared view'; $('#pill-data').className = 'pill';
+  $('#pill-data').textContent = 'shared view'; $('#pill-data').className = 'pill'; $('#pill-backend').hidden = true;
   const r = await fetch('/api/shared/' + encodeURIComponent(SHARED));
   if (!r.ok){ $('#thread').innerHTML = '<div class="empty"><h2>This link is no longer shared</h2><div>Ask the owner for a new one.</div></div>'; return; }
   const chat = await r.json(); currentTitle = chat.title;
@@ -380,7 +526,6 @@ async function bootShared(){
 // ---------- tabs ----------
 document.querySelectorAll('.tab').forEach(t => t.onclick = () => showTab(t.dataset.p));
 function showTab(p){
-  if (p === 'history') loadHistory();  // always show the latest list when the tab opens
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.dataset.p === p));
   document.querySelectorAll('.pane').forEach(x => x.classList.toggle('on', x.id === 'pane-' + p));
 }
@@ -428,7 +573,6 @@ function renderRail(){
     fact('figures', rail.ungrounded == null ? null : (rail.ungrounded ? rail.ungrounded + ' ungrounded' : 'all grounded'), rail.ungrounded ? 'bad' : 'ok'),
     fact('total', rail.total == null ? null : (rail.total / 1000).toFixed(1) + 's'),
   ].join('');
-  const hist = SHARED ? '' : `<button class="rlink" data-open="history">history ▸ <span>${CHATS.length ? CHATS.length + ' saved' : ''}</span></button>`;
   const scan = !INT.gptzero ? '' : (() => {
     const s = scanInfo;
     const txt = !s ? '' : s.running ? `${s.done}/${s.total}` : s.scanned ? `${s.flagged} flagged` : 'not scanned';
@@ -440,7 +584,7 @@ function renderRail(){
     <div class="rsep"></div>
     <button class="rlink" data-open="graph">graph ▸</button>
     <button class="rlink" data-open="sources">sources ▸</button>
-    <button class="rlink" data-open="trace">agent trace ▸</button>${scan}${hist}`;
+    <button class="rlink" data-open="trace">agent trace ▸</button>${scan}`;
   const slot = el.querySelector('#gslot'); if (slot && graphActive) slot.appendChild(thumbNode);
 }
 
@@ -460,13 +604,10 @@ async function refreshStatus(){
     renderRail();
     $('#pill-sentry').hidden = !INT.sentry; $('#pill-sentry').className = 'pill ok';
     $('#pill-gz').hidden = !INT.gptzero; $('#pill-gz').className = 'pill ok';
+    $('#appsbtn').hidden = $('#cp-apps').hidden = !INT.composio;
     $('#tab-quality').hidden = !INT.gptzero;
     if (!$('#mcp').value && s.source) $('#mcp').value = s.source;
     if (s.loaded){
-      const ents = [...new Set(s.documents.flatMap(d => d.entities))];
-      const sel = $('#entity'), cur = sel.value;
-      sel.innerHTML = ents.map(e => `<option>${esc(e)}</option>`).join('');
-      if (ents.includes(cur)) sel.value = cur;
       LAST_DOCS = s.documents; renderExamples(s.documents);
     }
     return s;
@@ -485,7 +626,10 @@ function renderExamples(docs){
   $('#examples').innerHTML = ex.map(e => `<span class="chip">${esc(e)}</span>`).join('');
   document.querySelectorAll('.chip').forEach(c => c.onclick = () => { $('#q').value = c.textContent; $('#form').requestSubmit(); });
 }
+let appStarted = false;
 function startApp(){
+  if (appStarted){ refreshStatus(); loadHistory(); return; }
+  appStarted = true;
   statusPoll = setInterval(async () => { const s = await refreshStatus(); if (s && (s.loaded || s.error) && !s.loading) clearInterval(statusPoll); }, 1500);
   refreshStatus(); loadHistory();
 }
@@ -746,16 +890,275 @@ $('#graph').addEventListener('mouseover', e => {
 $('#graph').addEventListener('mouseleave', () => { const svg = $('#graph'); svg.classList.remove('focus'); svg.querySelectorAll('.on').forEach(x => x.classList.remove('on')); });
 $('#graph').addEventListener('click', e => { const g = e.target.closest('.gn.cited'); if (g) focusSource(g.dataset.n); });
 
+// ---------- send an answer to another app (Slack, Notion, Google Docs, Google Slides) via Composio ----------
+// Nothing is sent until you press send, and what is sent is exactly the editable text shown in the panel.
+const APP_NAMES = { slack: 'Slack', notion: 'Notion', googledocs: 'Google Docs', googleslides: 'Google Slides' };
+let sm = null;
+
+function caveatsOf(s){
+  const out = [];
+  ((s.audit && s.audit.conflicts) || []).forEach(c => out.push(`- Sources disagree on ${c.topic}: ${(c.values || []).map(v => v.value).join(' vs ')}`));
+  ((s.audit && s.audit.gaps) || []).forEach(g => out.push(`- Missing: ${g}`));
+  const un = (s.grounding && s.grounding.ungrounded_numbers) || [];
+  if (un.length) out.push(`- Figures not found in the sources: ${un.join(', ')}`);
+  return out.join('\n');
+}
+function sourcesOf(s){
+  return (s.cites || []).map(c => `- [${c.n}] ${c.doc} L${c.start_line}${c.end_line !== c.start_line ? '-' + c.end_line : ''} (${c.section})`).join('\n');
+}
+function buildContent(){
+  const s = sm.snap, o = sm.opts, src = sourcesOf(s), cav = caveatsOf(s);
+  if (sm.app === 'googleslides'){
+    const slides = [`# ${sm.title}`];
+    if (o.question) slides.push(`# Question\n\n${s.question}`);
+    if (o.answer) slides.push(`# Answer\n\n${sm.answer.trim()}`);
+    if (o.sources && src) slides.push(`# Sources\n\n${src}`);
+    if (o.caveats && cav) slides.push(`# Caveats\n\n${cav}`);
+    return slides.join('\n\n---\n\n');
+  }
+  const parts = [`${sm.app === 'slack' ? '##' : '#'} ${sm.title}`];
+  if (o.question) parts.push(`**Question:** ${s.question}`);
+  if (o.answer) parts.push(sm.answer.trim());
+  if (o.sources && src) parts.push(`## Sources\n${src}`);
+  if (o.caveats && cav) parts.push(`## Caveats\n${cav}`);
+  return parts.join('\n\n');
+}
+function regenerate(){ if (!sm.dirty){ sm.md = buildContent(); const t = $('#sm-md'); if (t) t.value = sm.md; } }
+
+async function openApps(){
+  if (sm && sm.poll) clearInterval(sm.poll);
+  sm = { snap: null, app: 'slack', apps: [], targets: [], target: '', title: '', opts: {}, drafts: {}, dirty: false, md: '', msg: '', ok: false, url: '', waiting: false, poll: null, busy: false };
+  $('#sendm').hidden = false; renderSend();
+  await refreshApps();
+}
+function renderApps(){
+  const what = { slack: 'Post an answer to a channel.', notion: 'Save an answer as a new page.', googledocs: 'Create a document from an answer.', googleslides: 'Turn an answer into a slide deck.' };
+  const cards = Object.keys(APP_NAMES).map(slug => {
+    const a = sm.apps.find(x => x.slug === slug), on = a && a.connected, wait = sm.waiting && sm.app === slug;
+    return `<div class="app-card"><div class="app-top"><b>${APP_NAMES[slug]}</b><span class="pill ${on ? 'ok' : ''}">${on ? 'connected' : wait ? 'waiting…' : 'not connected'}</span></div>
+      <div class="sm-note">${what[slug]}</div>
+      <div class="sm-row">${on ? `<button type="button" class="linkbtn" data-disc="${slug}">disconnect</button>` : `<button type="button" class="primary" data-conn="${slug}"${sm.apps.length ? '' : ' disabled'}>connect</button>`}</div></div>`;
+  }).join('');
+  const result = sm.msg ? `<div class="sm-result bad">${esc(sm.msg)}</div>` : '';
+  $('#sendm').innerHTML = `<div class="sm-panel" role="dialog" aria-label="Connected apps"><div class="sm-head"><b>apps</b><button type="button" class="linkbtn" id="sm-close">close</button></div>
+    <div class="sm-note">Connect a tool once, then use “send to…” under any answer to post it there. You approve access on a page hosted by Composio, and signal never sees your passwords. Nothing is sent until you press send.</div>
+    <div class="app-grid">${cards}</div>${result}</div>`;
+  $('#sm-close').onclick = closeSend;
+  document.querySelectorAll('#sendm [data-conn]').forEach(b => b.onclick = () => { sm.app = b.dataset.conn; connectApp(); });
+  document.querySelectorAll('#sendm [data-disc]').forEach(b => b.onclick = () => { sm.app = b.dataset.disc; disconnectApp(); });
+}
+
+async function openSend(snap, answerText){
+  sm = { snap, answer: answerText, app: 'slack', apps: [], targets: [], target: '', title: (snap.question || 'Answer from signal').slice(0, 90),
+         opts: { question: true, answer: true, sources: true, caveats: true }, drafts: {}, dirty: false, md: '', msg: '', ok: false, url: '', waiting: false, poll: null, busy: false };
+  sm.md = buildContent();
+  $('#sendm').hidden = false; renderSend();
+  await refreshApps();
+}
+function closeSend(){ if (sm && sm.poll) clearInterval(sm.poll); sm = null; $('#sendm').hidden = true; }
+const smApp = () => sm.apps.find(a => a.slug === sm.app);
+
+async function refreshApps(){
+  const r = await fetch('/api/integrations'); if (!r.ok || !sm) return;
+  sm.apps = (await r.json()).apps; renderSend();
+  if (sm.snap && smApp() && smApp().connected && smApp().target && !sm.targets.length) loadTargets();
+}
+async function loadTargets(){
+  sm.targetsMsg = 'loading…'; renderSend();
+  const r = await fetch(`/api/integrations/${sm.app}/targets`);
+  if (!sm) return;
+  if (r.ok){ sm.targets = (await r.json()).targets; sm.targetsMsg = sm.targets.length ? '' : (sm.app === 'notion' ? 'No pages found. In Notion, share a page with the connection, then reload.' : 'No channels found.'); }
+  else { sm.targets = []; sm.targetsMsg = (await r.json().catch(() => ({}))).detail || 'Could not load the list.'; }
+  renderSend();
+}
+async function connectApp(){
+  const r = await fetch(`/api/integrations/${sm.app}/connect`, { method: 'POST' });
+  if (!r.ok){ sm.msg = (await r.json().catch(() => ({}))).detail || 'Could not start the sign-in.'; sm.ok = false; renderSend(); return; }
+  window.open((await r.json()).url, '_blank', 'noopener');
+  sm.waiting = true; sm.msg = ''; renderSend();
+  let tries = 0; clearInterval(sm.poll);
+  sm.poll = setInterval(async () => {
+    if (!sm){ return; }
+    await refreshApps(); tries++;
+    if ((smApp() && smApp().connected) || tries > 60){ clearInterval(sm.poll); sm.waiting = false; renderSend(); }
+  }, 3000);
+}
+async function disconnectApp(){
+  await fetch(`/api/integrations/${sm.app}/disconnect`, { method: 'POST' });
+  sm.targets = []; sm.target = ''; await refreshApps();
+}
+async function sendNow(){
+  sm.busy = true; sm.msg = 'sending…'; sm.ok = false; sm.url = ''; renderSend();
+  const r = await fetch(`/api/integrations/${sm.app}/send`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ title: sm.title, markdown: $('#sm-md').value, target: sm.target || null }) });
+  const j = await r.json().catch(() => ({}));
+  if (!sm) return;
+  sm.busy = false;
+  if (r.ok){ sm.ok = true; sm.msg = j.message || 'Sent.'; sm.url = j.url || ''; }
+  else { sm.ok = false; sm.msg = j.detail || 'Something went wrong.'; if (r.status === 409) await refreshApps(); }
+  renderSend();
+}
+
+function renderSend(){
+  if (!sm) return;
+  if (!sm.snap) return renderApps();
+  const app = smApp(), name = APP_NAMES[sm.app], connected = app && app.connected;
+  const tabs = Object.keys(APP_NAMES).map(slug => { const a = sm.apps.find(x => x.slug === slug); return `<button type="button" class="${slug === sm.app ? 'on' : ''}" data-app="${slug}">${a && a.connected ? '● ' : ''}${APP_NAMES[slug].toLowerCase()}</button>`; }).join('');
+  let body;
+  if (!sm.apps.length) body = '<div class="sm-note">loading…</div>';
+  else if (!connected) body = `<div class="sm-note">Connect ${name} to send this answer. You approve access once, on a page hosted by Composio. This app never sees your ${name} password or token.</div>
+      <div class="sm-row"><button type="button" class="primary" id="sm-connect">connect ${name.toLowerCase()}</button>${sm.waiting ? '<span class="sm-note">waiting for you to approve in the new tab…</span>' : ''}</div>`;
+  else {
+    const pick = app.target ? `<div class="sm-row"><label for="sm-target">${app.target === 'channel' ? 'channel' : 'parent page'}</label>
+        <select id="sm-target"><option value="">${sm.targets.length ? 'choose…' : (sm.targetsMsg || 'load the list')}</option>${sm.targets.map(t => `<option value="${esc(t.id)}"${t.id === sm.target ? ' selected' : ''}>${esc(t.name)}</option>`).join('')}</select>
+        <button type="button" class="linkbtn" id="sm-reload">reload</button></div>` : '';
+    const chk = (k, label) => `<label class="sm-chk"><input type="checkbox" data-opt="${k}"${sm.opts[k] ? ' checked' : ''}> ${label}</label>`;
+    body = `${pick}
+      <div class="sm-row"><label for="sm-title">title</label><input id="sm-title" value="${esc(sm.title)}" maxlength="200"></div>
+      <div class="sm-row"><span>include</span>${chk('question', 'question')}${chk('answer', 'answer')}${chk('sources', 'sources')}${chk('caveats', 'caveats')}</div>
+      <div class="sm-field"><label for="sm-md">${sm.app === 'googleslides' ? 'slides (--- starts a new slide)' : 'content'}: edit anything before it is sent</label><textarea id="sm-md" spellcheck="false">${esc(sm.md)}</textarea></div>
+      <div class="sm-row"><button type="button" class="primary" id="sm-send"${sm.busy ? ' disabled' : ''}>send to ${name.toLowerCase()}</button>${sm.dirty ? '<button type="button" class="linkbtn" id="sm-reset">reset to generated text</button>' : ''}<button type="button" class="linkbtn" id="sm-disc">disconnect ${name.toLowerCase()}</button></div>`;
+  }
+  const result = sm.msg ? `<div class="sm-result ${sm.ok ? 'ok' : (sm.busy ? '' : 'bad')}">${esc(sm.msg)}${sm.url ? ` <a href="${esc(sm.url)}" target="_blank" rel="noopener noreferrer">open</a>` : ''}</div>` : '';
+  $('#sendm').innerHTML = `<div class="sm-panel" role="dialog" aria-label="Send to another app"><div class="sm-head"><b>send to…</b><button type="button" class="linkbtn" id="sm-close">close</button></div>
+    <div class="gtabs sm-tabs">${tabs}</div>${body}${result}</div>`;
+  const on = (id, fn) => { const el = $(id); if (el) el.onclick = fn; };
+  on('#sm-close', closeSend); on('#sm-connect', connectApp); on('#sm-disc', disconnectApp); on('#sm-send', sendNow); on('#sm-reload', loadTargets);
+  on('#sm-reset', () => { sm.dirty = false; regenerate(); renderSend(); });
+  document.querySelectorAll('#sendm [data-app]').forEach(b => b.onclick = () => {
+    sm.drafts[sm.app] = { md: sm.md, dirty: sm.dirty };  // each app keeps its own draft: slides need a different shape than a Slack message
+    sm.app = b.dataset.app; sm.target = ''; sm.targets = []; sm.msg = ''; sm.url = '';
+    const d = sm.drafts[sm.app]; if (d){ sm.md = d.md; sm.dirty = d.dirty; } else { sm.dirty = false; sm.md = buildContent(); }
+    renderSend(); if (smApp() && smApp().connected && smApp().target) loadTargets(); });
+  document.querySelectorAll('#sendm [data-opt]').forEach(c => c.onchange = () => { sm.opts[c.dataset.opt] = c.checked; regenerate(); });
+  if ($('#sm-target')) $('#sm-target').onchange = e => { sm.target = e.target.value; };
+  if ($('#sm-title')) $('#sm-title').oninput = e => { sm.title = e.target.value; regenerate(); };
+  if ($('#sm-md')) $('#sm-md').oninput = e => { sm.md = e.target.value; if (!sm.dirty){ sm.dirty = true; renderSendKeepFocus(); } };
+}
+function renderSendKeepFocus(){  // show the "reset" link without losing the caret
+  const t = $('#sm-md'), start = t.selectionStart, end = t.selectionEnd, top = t.scrollTop, val = t.value;
+  renderSend(); const n = $('#sm-md'); n.value = val; n.focus(); n.setSelectionRange(start, end); n.scrollTop = top;
+}
+$('#sendm').addEventListener('click', e => { if (e.target.id === 'sendm') closeSend(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && sm) closeSend(); });
+
+// ---------- chats page: every saved chat, searchable, with rename / share / delete ----------
+let cpSel = new Set(), cpMsg = {}, cpRenaming = false;
+function showChats(){
+  $('#chats').hidden = false; history.replaceState(null, '', '#chats');
+  cpSel.clear(); cpMsg = {}; $('#cp-search').value = '';
+  renderChats(); loadHistory().then(renderChats);
+}
+function hideChats(){ $('#chats').hidden = true; if (location.hash === '#chats') history.replaceState(null, '', '#app'); }
+function bucket(t){
+  const now = new Date(); now.setHours(0, 0, 0, 0); const today = now.getTime() / 1000, day = 86400;
+  const d = new Date(t * 1000); d.setHours(0, 0, 0, 0); const s = d.getTime() / 1000;
+  return s >= today ? 'today' : s >= today - day ? 'yesterday' : s >= today - 7 * day ? 'previous 7 days' : s >= today - 30 * day ? 'previous 30 days' : 'older';
+}
+function chatRow(c){
+  const when = new Date(c.updated_at * 1000).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  return `<div class="cp-row${cpSel.has(c.id) ? ' sel' : ''}" data-id="${esc(c.id)}">
+    <input type="checkbox" class="cp-check" aria-label="Select this chat"${cpSel.has(c.id) ? ' checked' : ''}>
+    <div class="cp-main" tabindex="0" role="button" aria-label="Open chat">
+      <div class="cp-title">${esc(c.title)}</div>
+      ${c.preview ? `<div class="cp-prev">${esc(c.preview)}</div>` : ''}
+      <div class="cp-meta">${esc(when)} · ${c.runs} question${c.runs === 1 ? '' : 's'}${c.shared ? ' · shared' : ''}${cpMsg[c.id] ? ` · <span class="ok">${esc(cpMsg[c.id])}</span>` : ''}</div>
+    </div>
+    <div class="cp-actions">
+      <button type="button" class="linkbtn" data-act="rename">rename</button>
+      <button type="button" class="linkbtn" data-act="share">${c.shared ? 'copy link' : 'share'}</button>${c.shared ? '<button type="button" class="linkbtn" data-act="unshare">stop sharing</button>' : ''}
+      <button type="button" class="linkbtn danger" data-act="delete">delete</button>
+    </div>
+  </div>`;
+}
+function renderChats(){
+  if (cpRenaming) return;  // a background refresh must not wipe a name that is being typed
+  const q = $('#cp-search').value.trim().toLowerCase();
+  const rows = CHATS.filter(c => !q || c.title.toLowerCase().includes(q) || (c.preview || '').toLowerCase().includes(q));
+  const groups = {};
+  rows.forEach(c => (groups[bucket(c.updated_at)] = groups[bucket(c.updated_at)] || []).push(c));
+  let html = '';
+  ['today', 'yesterday', 'previous 7 days', 'previous 30 days', 'older'].forEach(g => { if (groups[g]) html += `<div class="cp-group">${g}</div>` + groups[g].map(chatRow).join(''); });
+  if (!rows.length) html = `<div class="cp-empty">${CHATS.length ? `No chats match “${esc(q)}”.` : 'No saved chats yet. Ask a question and it is saved here automatically.'}</div>`;
+  $('#cp-list').innerHTML = html;
+  syncSelection();
+}
+function syncSelection(){
+  $('#cp-bar').hidden = !cpSel.size;
+  $('#cp-count').textContent = `${cpSel.size} selected`;
+  document.querySelectorAll('#cp-list .cp-row').forEach(r => r.classList.toggle('sel', cpSel.has(r.dataset.id)));
+}
+async function openFromPage(id){ hideChats(); await openChat(id); }
+function startRename(row){
+  const id = row.dataset.id, c = CHATS.find(x => x.id === id), t = row.querySelector('.cp-title');
+  t.outerHTML = `<input class="cp-rename" value="${esc(c.title)}" maxlength="120" aria-label="Chat name">`;
+  const input = row.querySelector('.cp-rename'); input.focus(); input.select();
+  let done = false; cpRenaming = true;
+  const finish = async save => {
+    if (done) return; done = true; cpRenaming = false;
+    if (save && input.value.trim() && input.value.trim() !== c.title){
+      const r = await fetch('/api/chats/' + encodeURIComponent(id), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: input.value }) });
+      if (r.ok){ c.title = (await r.json()).title; if (id === currentChatId){ currentTitle = c.title; renderChatbar(); } }
+      else cpMsg[id] = (await r.json().catch(() => ({}))).detail || 'could not rename';
+    }
+    renderChats();
+  };
+  input.onkeydown = e => { if (e.key === 'Enter'){ e.preventDefault(); finish(true); } else if (e.key === 'Escape'){ e.stopPropagation(); finish(false); } };
+  input.onblur = () => finish(true);
+}
+async function shareFromPage(id, on){
+  const r = await fetch(`/api/chats/${encodeURIComponent(id)}/share`, { method: on ? 'POST' : 'DELETE' });
+  if (!r.ok){ cpMsg[id] = (await r.json().catch(() => ({}))).detail || 'could not update the link'; renderChats(); return; }
+  if (on){
+    const link = `${location.origin}/?share=${(await r.json()).token}`;
+    try{ await navigator.clipboard.writeText(link); cpMsg[id] = 'link copied'; }catch(e){ cpMsg[id] = link; }
+  } else cpMsg[id] = 'link disabled';
+  if (id === currentChatId){ currentShared = on; renderChatbar(); }
+  await loadHistory(); renderChats();
+}
+async function deleteFromPage(ids){
+  const many = ids.length > 1;
+  if (!confirm(many ? `Delete ${ids.length} chats? This cannot be undone.` : 'Delete this chat? This cannot be undone.')) return;
+  const r = many ? await fetch('/api/chats/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids }) })
+                 : await fetch('/api/chats/' + encodeURIComponent(ids[0]), { method: 'DELETE' });
+  if (!r.ok) return;
+  ids.forEach(id => cpSel.delete(id));
+  if (ids.includes(currentChatId) && !busy) newChat();
+  await loadHistory(); renderChats();
+}
+$('#cp-list').addEventListener('change', e => {
+  const row = e.target.closest('.cp-row'); if (!row || !e.target.classList.contains('cp-check')) return;
+  e.target.checked ? cpSel.add(row.dataset.id) : cpSel.delete(row.dataset.id); syncSelection();
+});
+$('#cp-list').addEventListener('click', e => {
+  const row = e.target.closest('.cp-row'); if (!row) return;
+  const act = e.target.closest('[data-act]');
+  if (act){
+    const id = row.dataset.id;
+    if (act.dataset.act === 'rename') startRename(row);
+    else if (act.dataset.act === 'share') shareFromPage(id, true);
+    else if (act.dataset.act === 'unshare') shareFromPage(id, false);
+    else if (act.dataset.act === 'delete') deleteFromPage([id]);
+  } else if (e.target.closest('.cp-main')) openFromPage(row.dataset.id);
+});
+$('#cp-list').addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.classList.contains('cp-main')) openFromPage(e.target.closest('.cp-row').dataset.id); });
+$('#cp-search').addEventListener('input', renderChats);
+$('#cp-back').onclick = hideChats;
+$('#cp-apps').onclick = $('#appsbtn').onclick = openApps;
+$('#cp-new').onclick = () => { hideChats(); newChat(); };
+$('#cp-clear').onclick = () => { cpSel.clear(); syncSelection(); };
+$('#cp-delsel').onclick = () => deleteFromPage([...cpSel]);
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#chats').hidden && !sm && document.activeElement.tagName !== 'INPUT') hideChats(); });
+
 // ---------- ask ----------
 $('#form').addEventListener('submit', e => { e.preventDefault(); const q = $('#q').value.trim(); if (q) go('/api/ask', {question:q, flow: $('#deep').checked ? 'team' : null}, q); });
 $('#q').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); $('#form').requestSubmit(); } });
-$('#briefBtn').onclick = () => { const ent = $('#entity').value; if (ent) go('/api/brief', {entity:ent}, `Analyst brief: ${ent}`); };
 
 function beginRun(label){
   cites = {};
   $('#empty')?.remove();
   const thread = $('#thread');
-  thread.insertAdjacentHTML('beforeend', `<div class="q">${esc(label)}</div><div class="a"><div class="body md cursor"></div><div class="badges"></div></div>`);
+  thread.insertAdjacentHTML('beforeend', `<div class="q">${esc(label)}</div><div class="a"><div class="body md cursor"></div><div class="badges"></div><div class="act"><button type="button" class="linkbtn sendbtn" hidden>send to…</button></div></div>`);
   const answer = thread.querySelector('.a:last-child'), bodyEl = answer.querySelector('.body'), badges = answer.querySelector('.badges');
   thread.scrollTop = thread.scrollHeight;
   $('#pane-sources').innerHTML = '';
@@ -764,6 +1167,7 @@ function beginRun(label){
   const drawSteps = () => { $('#pane-trace .pipeline').innerHTML = order.map(a => `<div class="step" data-a="${a}">${a}</div>`).join(''); rail.steps = order; renderRail(); };
   drawSteps(); railReset(order); graphReset(label);
   const tr = $('#tr'); let text = '';
+  const snap = { question: label, cites: [], audit: null, grounding: null };  // what the send panel builds from
   const setStep = (a, st) => {
     const idx = order.indexOf(a);
     document.querySelectorAll('.step').forEach(s => { const i = order.indexOf(s.dataset.a); s.className = 'step' + (i < idx ? ' done' : i === idx ? ' ' + st : (s.classList.contains('done') ? ' done' : '')); });
@@ -803,7 +1207,7 @@ function beginRun(label){
         add(`<div class="card"><h5>${ev.followup ? 'Follow-up retrieval' : 'Retrieval'} · ${ev.t} ms</h5><div style="margin-bottom:4px">${esc(ev.query)}</div>${ev.hits.map(h => `<div class="hit">${esc(h.entity || '–')} · ${esc(h.kind)} · L${h.start_line} · ${esc(h.section.slice(-48))}</div>`).join('')}</div>`);
         break;
       case 'verification': {
-        const a = ev.audit;
+        const a = ev.audit; snap.audit = a;
         add(`<div class="card"><h5>Verifier (pass ${ev.round})${a.model && 'winner' in a ? ' · ' + esc(a.model) : ''} · ${ev.t} ms</h5>
           ${'winner' in a ? `<div>Independent verdict: <b>${esc(a.winner || 'no single winner')}</b> · ${a.agrees_with_team ? '✅ agrees with the team' : '⚠️ differs from the team'}<div style="color:var(--muted)">${esc(a.adjudication)}</div></div>` : ''}
           <div>${a.answerable ? '✅ evidence sufficient' : '⚠️ evidence insufficient'} · ${a.facts.length} facts · ${a.conflicts.length} conflict${a.conflicts.length === 1 ? '' : 's'}</div>
@@ -812,14 +1216,14 @@ function beginRun(label){
         break; }
       case 'token': text += ev.text; bodyEl.innerHTML = md(text); thread.scrollTop = thread.scrollHeight; break;
       case 'citations':
-        rail.sources = ev.items.length; renderRail();
+        snap.cites = ev.items; rail.sources = ev.items.length; renderRail();
         ev.items.forEach(c => cites[c.n] = c);
         $('#pane-sources').innerHTML = ev.items.map(sourceCard).join('') || '<div class="card">No citations.</div>';
         ev.items.forEach(c => { loadLines(document.getElementById('src-' + c.n), c.id); if (INT.gptzero) gzBadge(c); });
         bodyEl.innerHTML = md(text); bindCites(bodyEl);
         break;
       case 'grounding': {
-        rail.conflicts = ev.conflicts; rail.gaps = ev.gaps.length; rail.ungrounded = ev.ungrounded_numbers.length; renderRail();
+        snap.grounding = ev; rail.conflicts = ev.conflicts; rail.gaps = ev.gaps.length; rail.ungrounded = ev.ungrounded_numbers.length; renderRail();
         const b = [];
         b.push(ev.conflicts ? `<span class="pill warn">⚠ ${ev.conflicts} conflict${ev.conflicts === 1 ? '' : 's'} flagged</span>` : `<span class="pill ok">no conflicts</span>`);
         if (!ev.answerable) b.push(`<span class="pill warn">incomplete: data missing</span>`);
@@ -829,7 +1233,8 @@ function beginRun(label){
         if (ev.invalid_citations.length) b.push(`<span class="pill bad">invalid citations: ${ev.invalid_citations.join(', ')}</span>`);
         badges.innerHTML = b.join('');
         break; }
-      case 'done': rail.total = ev.t; rail.steps.forEach(a => rail.status[a] = 'done'); renderRail(); setStep('writer', 'done'); document.querySelectorAll('.step').forEach(s => s.className = 'step done'); add(`<div class="card">Done in ${(ev.t/1000).toFixed(1)} s</div>`); break;
+      case 'done': { const sb = answer.querySelector('.sendbtn'); if (sb && INT.composio && !SHARED){ sb.hidden = false; sb.onclick = () => openSend(snap, text); } }
+        rail.total = ev.t; rail.steps.forEach(a => rail.status[a] = 'done'); renderRail(); setStep('writer', 'done'); document.querySelectorAll('.step').forEach(s => s.className = 'step done'); add(`<div class="card">Done in ${(ev.t/1000).toFixed(1)} s</div>`); break;
       case 'error': bodyEl.innerHTML += `<p class="err">${esc(ev.message)}</p>`; break;
     }
   }
@@ -839,7 +1244,7 @@ function beginRun(label){
 
 async function go(url, body, label){
   if (busy) return;
-  busy = true; $('#q').value = ''; $('#send').disabled = $('#briefBtn').disabled = true;
+  busy = true; $('#q').value = ''; $('#send').disabled = true;
   currentTitle = currentTitle || label;
   const run = beginRun(label);
   try{
@@ -855,7 +1260,7 @@ async function go(url, body, label){
       }
     }
   }catch(e){ run.bodyEl.innerHTML += `<p class="err">${esc(e.message)}</p>`; }
-  run.end(); busy = false; $('#send').disabled = $('#briefBtn').disabled = false; loadHistory();
+  run.end(); busy = false; $('#send').disabled = false; loadHistory();
 }
 
 // a saved chat replays through the same handler as a live run: tokens were stored as one answer string,

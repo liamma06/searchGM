@@ -6,6 +6,7 @@ replays the graph, trace and sources exactly as they were. Everything goes throu
 With MONGODB_URI set it talks to MongoDB (Atlas). Without it, it falls back to an in-memory mongomock
 database, which is fine for local development and tests but loses saved data on restart."""
 import json
+import re
 import secrets
 import time
 import uuid
@@ -108,7 +109,8 @@ def list_chats(user_id: str) -> list[dict]:
         {"$match": {"chat_id": {"$in": [c["_id"] for c in chats]}}},
         {"$group": {"_id": "$chat_id", "n": {"$sum": 1}}},
     ])}
-    return [{"id": c["_id"], "title": c["title"], "updated_at": c["updated_at"], "shared": bool(c.get("share_token")), "runs": counts.get(c["_id"], 0)} for c in chats]
+    return [{"id": c["_id"], "title": c["title"], "preview": c.get("preview", ""), "updated_at": c["updated_at"], "created_at": c.get("created_at", c["updated_at"]),
+             "shared": bool(c.get("share_token")), "runs": counts.get(c["_id"], 0)} for c in chats]
 
 
 def _with_runs(chat: dict) -> dict:
@@ -130,6 +132,19 @@ def delete_chat(chat_id: str, user_id: str) -> bool:
         return False
     _d().runs.delete_many({"chat_id": chat_id})
     return True
+
+
+def rename_chat(chat_id: str, user_id: str, title: str) -> bool:
+    return _d().chats.update_one({"_id": chat_id, "user_id": user_id}, {"$set": {"title": title[:120]}}).matched_count > 0
+
+
+def delete_chats(chat_ids: list[str], user_id: str) -> int:
+    """Delete several chats at once. Only ones this user owns are touched, whatever ids are passed."""
+    owned = [c["_id"] for c in _d().chats.find({"_id": {"$in": chat_ids}, "user_id": user_id}, {"_id": 1})]
+    if owned:
+        _d().chats.delete_many({"_id": {"$in": owned}})
+        _d().runs.delete_many({"chat_id": {"$in": owned}})
+    return len(owned)
 
 
 def set_share(chat_id: str, user_id: str, on: bool) -> str | None:
@@ -155,4 +170,6 @@ def save_run(chat_id: str, question: str, kind: str, answer: str, events: list[d
         blob = json.dumps([e for e in events if e.get("type") in ("plan", "verification", "citations", "grounding", "done", "error")], ensure_ascii=False)
     now = time.time()
     _d().runs.insert_one({"chat_id": chat_id, "question": question, "kind": kind, "answer": answer, "events": blob, "secs": secs, "created_at": now})
-    _d().chats.update_one({"_id": chat_id}, {"$set": {"updated_at": now}})
+    text = re.sub(r"[*`#>]", "", re.sub(r"\[\d+\]", "", answer))  # drop citation markers and markdown symbols
+    preview = " ".join(re.sub(r"\s+([.,;:!?])", r"\1", text).split())[:200]  # shown under the title on the chats page
+    _d().chats.update_one({"_id": chat_id}, {"$set": {"updated_at": now, "preview": preview}})

@@ -18,7 +18,7 @@ from .config import settings
 from .corpus import Corpus
 from .observability import agent_span, log_pipeline
 
-MAX_EVIDENCE = {"answer": 22, "brief": 30}
+MAX_EVIDENCE = {"answer": 22}
 
 
 def hit_dict(c: Chunk, score: float) -> dict:

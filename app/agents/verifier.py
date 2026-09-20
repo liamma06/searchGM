@@ -1,3 +1,6 @@
+import asyncio
+import re
+
 from ..chunker import Chunk
 from ..config import settings
 from ..llm import chat_json, cross_model_available
@@ -8,7 +11,7 @@ You are given a question and numbered evidence passages [n] taken from financial
 
 Do the following, using ONLY the evidence:
 1. Extract the facts needed to answer the question, each tied to the passage numbers that state it. Note the reporting period and whether the value is exact or approximate ("~").
-2. Detect CONFLICTS: the same metric, entity AND period reported with different values in different passages or sections (e.g. a snapshot table vs a deep dive). Different periods are NOT conflicts. Rounding or "~" approximations of the same number are NOT conflicts but must be noted as approximate. Different MEASURES of a metric are NOT conflicts either: adjusted vs GAAP/reported/diluted, segment vs consolidated, trailing vs single-quarter, or any two figures whose labels or definitions differ. Record them as separate facts instead. If you list such a pair anyway, set "different_measures": true on it (true whenever the values are labelled as different measures or definitions).
+2. Detect CONFLICTS: the same metric, entity AND period reported with different values in different passages or sections (e.g. a snapshot table vs a deep dive). Different periods are NOT conflicts. Any difference in the value itself IS a conflict, however small, including 17.9% vs 18% or an exact figure vs a rounded or "~" approximate one: report it and say in the assessment that it may only be rounding, but do not drop it. Only list a conflict when the values genuinely differ: if every value is the same (\"$2.73\" vs \"$2.73\", or 18 vs 18.0%, $1.2B vs 1,200M), it is NOT a conflict and must not appear in \"conflicts\" at all. Different MEASURES of a metric are NOT conflicts either: adjusted vs GAAP/reported/diluted, segment vs consolidated, trailing vs single-quarter, or any two figures whose labels or definitions differ. Record them as separate facts instead. If you list such a pair anyway, set "different_measures": true on it (true whenever the values are labelled as different measures or definitions).
 3. Decide "answerable": true only if the evidence directly supports a precise answer. If a needed figure, entity or period is absent, list it under "gaps" and propose targeted "follow_up_queries" (with entities copied from the evidence metadata when known).
 4. Never invent values, and never fill gaps from outside knowledge.
 5. Take a passage's period only from its own section label or text. If a passage states a value without a period, record the period as "not stated" instead of inferring it from other passages; a value that appears only as an approximation ("~") for the latest period while the exact figure is stated for an earlier one should be reported as exactly that.
@@ -30,6 +33,17 @@ This is an IDENTIFICATION question ("which company ..."). A team of analyst agen
 Also return: "winner": <entity id or null>, "agrees_with_team": <true if your winner equals the team's unique full match>, "adjudication": "<= 40 words, explaining any disagreement with the team>". Return an empty "follow_up_queries"."""
 
 
+def _norm(value) -> object:
+    """Comparable form of a reported value: '$2.73' and '2.73', '18%' and '18.0%' match; anything else compares as text."""
+    t = re.sub(r"[\s$,~≈]", "", str(value).lower())
+    m = re.fullmatch(r"(-?\d+(?:\.\d+)?)(%|bps|[bmk])?", t)
+    return (float(m.group(1)), m.group(2) or "") if m else t
+
+
+def is_real_conflict(c: dict) -> bool:
+    return isinstance(c, dict) and not c.get("different_measures") and len({_norm(v.get("value")) for v in c.get("values", []) if isinstance(v, dict)}) >= 2
+
+
 def team_block(team: dict) -> str:
     lines = ["Clues:"] + [f"  {i}. {c}" for i, c in enumerate(team["clues"], 1)]
     lines.append(f"Team leader's pick: {team['leader']} (unique full match: {team['unique_full_match']}; full matches: {team['full_matches']})")
@@ -47,9 +61,9 @@ The question asks WHICH company satisfies a set of clues:
 Set "answerable" to true only if the evidence shows ONE company satisfying every clue (ideally in the same reporting period). Otherwise set it to false and list each unresolved clue under "gaps"."""
 
 
-async def verify(question: str, evidence: list[Chunk], team: dict | None = None, clues: list[str] | None = None) -> dict:
+async def verify(question: str, evidence: list[Chunk], team: dict | None = None, clues: list[str] | None = None, model: str | None = None) -> dict:
     user = f"Question: {question}\n\nEvidence:\n{format_evidence(evidence)}"
-    system, model = SYSTEM, settings.chat_model
+    system, model = SYSTEM, model or settings.chat_model
     if clues and not team:
         numbered = "\n".join(f"  {i}. {c}" for i, c in enumerate(clues, 1))
         system += LOOKUP_IDENTIFY_ADDENDUM.format(clues=numbered)
@@ -59,19 +73,23 @@ async def verify(question: str, evidence: list[Chunk], team: dict | None = None,
     out = None
     if team and cross_model_available():  # a different model family adjudicates, so errors are less likely to be shared
         try:
-            out = await chat_json(
-                system,
-                user,
-                settings.verifier_model,
-                provider="openrouter",
-                timeout=settings.verifier_timeout,
-                extra_body={"reasoning": {"enabled": False}},
+            # the client's own timeout is per read and OpenRouter can keep a slow request alive, so cap the total time
+            out = await asyncio.wait_for(
+                chat_json(
+                    system,
+                    user,
+                    settings.verifier_model,
+                    provider="openrouter",
+                    timeout=settings.verifier_timeout,
+                    extra_body={"reasoning": {"enabled": False}},
+                ),
+                settings.verifier_timeout,
             )
             model = settings.verifier_model
         except Exception:
             out = None
     if out is None:
-        out = await chat_json(system, user, settings.chat_model)
+        out = await chat_json(system, user, model)
     out["model"] = model
     n = len(evidence)
 
@@ -83,8 +101,8 @@ async def verify(question: str, evidence: list[Chunk], team: dict | None = None,
     for c in out.get("conflicts", []):
         for v in c.get("values", []):
             v["sources"] = clean(v.get("sources"))
-    # figures labelled as different measures (adjusted vs GAAP...) are not conflicts: keep them out of the audit
-    out["conflicts"] = [c for c in out.get("conflicts", []) if isinstance(c, dict) and not c.get("different_measures")]
+    # figures labelled as different measures (adjusted vs GAAP...) and "conflicts" whose values are all the same are not conflicts
+    out["conflicts"] = [c for c in out.get("conflicts", []) if is_real_conflict(c)]
     out.setdefault("facts", [])
     out.setdefault("conflicts", [])
     out.setdefault("gaps", [])

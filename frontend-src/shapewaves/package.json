@@ -1,0 +1,10 @@
+{
+  "name": "signal-shapewaves",
+  "private": true,
+  "description": "Builds the Shape Waves background into frontend/vendor/ (run: npm install && npm run build)",
+  "scripts": {
+    "build": "esbuild entry.jsx --bundle --minify --format=iife --jsx=automatic --loader:.jsx=jsx --define:process.env.NODE_ENV=\\\"production\\\" --banner:js=\"/* Shape Waves: React Bits, MIT + Commons Clause, (c) 2026 David Haz. See frontend-src/shapewaves/LICENSE-react-bits.md */\" --outfile=../../frontend/vendor/shapewaves.js"
+  },
+  "dependencies": { "react": "^19", "react-dom": "^19", "vgpu": "0.3.1" },
+  "devDependencies": { "esbuild": "^0.25" }
+}

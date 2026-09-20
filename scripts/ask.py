@@ -1,4 +1,4 @@
-"""CLI: python -m scripts.ask "question" [--brief]"""
+"""CLI: python -m scripts.ask "question" """
 import asyncio
 import json
 import sys
@@ -45,4 +45,4 @@ async def main(question: str, mode: str):
 
 if __name__ == "__main__":
     args = [a for a in sys.argv[1:] if not a.startswith("--")]
-    asyncio.run(main(" ".join(args), "brief" if "--brief" in sys.argv else "answer"))
+    asyncio.run(main(" ".join(args), "answer"))

@@ -30,6 +30,8 @@ tables, `<details>` blocks), and the planner is given the new corpus overview. N
 
 ## Interface
 
+- **Home screen** (shown first): the React Bits *Shape Waves* WebGPU background with the word "signal" carved out of it, plus sign-in / create-account or *open signal* buttons. Click "signal" in the app header to return to it. Browsers without WebGPU get a static fallback. The effect is built from `frontend-src/shapewaves/` into `frontend/vendor/` (see `frontend/vendor/README.md` for licenses).
+
 - **Chat** with rendered markdown and clickable `[n]` citations that open the exact source passage (rendered, with a
   *raw lines* toggle for the numbered original).
 - **Tracker** (right, collapsed by default): live pipeline steps with timings, sources cited, conflicts, gaps and
@@ -38,7 +40,19 @@ tables, `<details>` blocks), and the planner is given the new corpus overview. N
   retrieved passages -> cited passages -> answer. Retrieved-but-unused passages show as grey dots, cited ones as
   labelled nodes, supporting links as white lines and contradicting ones as red dashed lines. Hover to isolate a
   path, click a cited passage to open it. It is drawn from events the server already streams, so it adds no latency.
-- **Deep team analysis** toggle, **analyst brief** per company, and a **dataset loader** for a new MCP URL.
+- **Deep team analysis** toggle and a **dataset loader** for a new MCP URL.
+
+## Send to other apps
+
+Under every answer, **send to…** opens a panel to post it to **Slack**, save it as a **Notion** page, or create a
+**Google Doc** or **Google Slides** deck (`COMPOSIO_API_KEY`, via [Composio](https://composio.dev)). You pick the
+destination and the channel or parent page, choose what to include (question, answer, sources, caveats such as
+conflicts and missing data), and edit the exact text before it is sent. Each app keeps its own draft.
+
+Sign-in to those apps is Composio-managed OAuth: each user connects an app once on a Composio-hosted page, Composio
+stores and refreshes the tokens, and this app only holds the Composio key. Calls are made as the signed-in user, so
+nobody can act with someone else's connected accounts. Nothing is ever sent automatically: an action happens only on
+a click, on content the user can read and edit first, so text inside a document can't trigger one.
 
 ## Accounts and saved chats
 

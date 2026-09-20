@@ -18,13 +18,6 @@ Rules:
 
 ANSWER = RULES + "\n- Format: a short direct answer, then (only if useful) a few bullet points of supporting detail."
 
-BRIEF = (
-    RULES
-    + """
-- Format: an analyst brief in markdown with these sections: **Snapshot**, **Latest quarter**, **Trend (trailing quarters)**, **Catalysts & risks**, **Insider / institutional activity**, **Data quality flags** (conflicts, approximations, gaps). Omit a section only if the evidence has nothing for it."""
-)
-
-
 IDENTIFY = (
     RULES
     + """
@@ -38,7 +31,7 @@ IDENTIFY_LITE = ANSWER + "\n- This asks WHICH company satisfies several clues. N
 async def write(
     question: str, evidence: list[Chunk], audit: dict, mode: str = "answer", team: dict | None = None, identify: bool = False
 ) -> AsyncIterator[str]:
-    system = IDENTIFY if team else (BRIEF if mode == "brief" else (IDENTIFY_LITE if identify else ANSWER))
+    system = IDENTIFY if team else (IDENTIFY_LITE if identify else ANSWER)
     user = (
         f"Question: {question}\n\nVerifier audit (JSON):\n{json.dumps(audit, ensure_ascii=False)}\n\n"
         + (f"Team analysis (JSON):\n{json.dumps(team, ensure_ascii=False)}\n\n" if team else "")

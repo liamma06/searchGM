@@ -11,7 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from starlette.middleware.sessions import SessionMiddleware
 
-from . import auth, db, gptzero, observability
+from . import auth, db, gptzero, integrations, observability
 from .auth import admin_user, current_user, optional_user, require_xhr
 from .config import ROOT, settings
 from .corpus import Corpus
@@ -24,10 +24,25 @@ state = {"loading": False, "error": None}
 FRONTEND = ROOT / "frontend"
 
 
+async def warmup() -> None:
+    """The first queries after a start-up pay for cold connections (OpenAI, Elastic); do that before a user waits on it."""
+    from .llm import chat_json, embed
+
+    try:
+        vec = (await embed(["warm up"]))[0]
+        jobs = [asyncio.to_thread(corpus.store.search, "warm up", vec, 5, None, None), chat_json("Reply with {}", "{}", settings.fast_model)]
+        if integrations.enabled():  # building the Composio client looks up tool versions, which is slow the first time
+            jobs.append(asyncio.to_thread(integrations._c))
+        await asyncio.gather(*jobs)
+    except Exception:
+        pass
+
+
 async def load(url: str) -> None:
     state.update(loading=True, error=None)
     try:
         await corpus.load_from_mcp(url)
+        await warmup()
     except Exception as e:
         state["error"] = f"{type(e).__name__}: {e}"
     finally:
@@ -54,6 +69,7 @@ app.add_middleware(
     max_age=7 * 24 * 3600,
 )
 app.include_router(auth.router)
+app.include_router(integrations.router)
 
 
 class AskBody(BaseModel):
@@ -62,13 +78,16 @@ class AskBody(BaseModel):
     chat_id: str | None = None  # continue an existing chat; None starts a new one
 
 
-class BriefBody(BaseModel):
-    entity: str
-    chat_id: str | None = None
-
-
 class IngestBody(BaseModel):
     mcp_url: str
+
+
+class RenameBody(BaseModel):
+    title: str
+
+
+class DeleteManyBody(BaseModel):
+    ids: list[str]
 
 
 def sse(events):
@@ -111,7 +130,7 @@ def start_chat(user: dict, chat_id: str | None, title: str) -> str:
 @app.get("/api/status")
 def status(user: dict = Depends(current_user)):
     return {**corpus.status(), "loading": state["loading"], "error": state["error"], "models": {"chat": settings.chat_model, "fast": settings.fast_model, "embed": settings.embed_model},
-            "integrations": {"sentry": observability.enabled(), "gptzero": gptzero.enabled()}, "is_admin": user["is_admin"]}
+            "integrations": {"sentry": observability.enabled(), "gptzero": gptzero.enabled(), "composio": integrations.enabled()}, "is_admin": user["is_admin"]}
 
 
 @app.post("/api/ingest", dependencies=[Depends(require_xhr)])
@@ -138,21 +157,6 @@ async def ask(body: AskBody, user: dict = Depends(current_user)):
     return sse(persisted(run(corpus, question, "answer", flow), chat_id, question, "ask"))
 
 
-@app.post("/api/brief", dependencies=[Depends(require_xhr)])
-async def brief(body: BriefBody, user: dict = Depends(current_user)):
-    entity = body.entity.strip()
-    if not entity:
-        raise HTTPException(400, "Pick a company")
-    auth.check_ask_rate(user)
-    question = (
-        f"Produce an analyst brief for {entity}: its latest-quarter results and key metrics, how they trended over the "
-        f"trailing quarters, upcoming catalysts and risks, insider/institutional activity, and flag any conflicting, "
-        f"approximate or missing data."
-    )
-    chat_id = await asyncio.to_thread(start_chat, user, body.chat_id, f"Analyst brief: {entity}")
-    return sse(persisted(run(corpus, question, "brief"), chat_id, f"Analyst brief: {entity}", "brief"))
-
-
 # ---------- saved chats ----------
 @app.get("/api/chats")
 def chats(user: dict = Depends(current_user)):
@@ -172,6 +176,23 @@ def chat_delete(chat_id: str, user: dict = Depends(current_user)):
     if not db.delete_chat(chat_id, user["id"]):
         raise HTTPException(404, "Chat not found")
     return {"ok": True}
+
+
+@app.patch("/api/chats/{chat_id}", dependencies=[Depends(require_xhr)])
+def chat_rename(chat_id: str, body: RenameBody, user: dict = Depends(current_user)):
+    title = " ".join(body.title.split())
+    if not title:
+        raise HTTPException(400, "Give the chat a name")
+    if not db.rename_chat(chat_id, user["id"], title):
+        raise HTTPException(404, "Chat not found")
+    return {"title": title[:120]}
+
+
+@app.post("/api/chats/delete", dependencies=[Depends(require_xhr)])
+def chats_delete_many(body: DeleteManyBody, user: dict = Depends(current_user)):
+    if not body.ids or len(body.ids) > 200:
+        raise HTTPException(400, "Choose between 1 and 200 chats")
+    return {"deleted": db.delete_chats(body.ids, user["id"])}
 
 
 @app.post("/api/chats/{chat_id}/share", dependencies=[Depends(require_xhr)])
