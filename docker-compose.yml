@@ -1,0 +1,14 @@
+services:
+  signal:
+    build: .
+    ports:
+      - "8000:8000"
+    env_file: .env          # your keys stay in .env; they are not baked into the image
+    environment:
+      COOKIE_SECURE: "0"    # plain http://localhost; set to 1 only when served over https
+    volumes:
+      - signal-data:/srv/data   # keeps the dataset and embedding cache between restarts
+    restart: unless-stopped
+
+volumes:
+  signal-data:

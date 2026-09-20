@@ -112,3 +112,5 @@ the index is created and searched in Elasticsearch (BM25 + kNN, fused client-sid
 .venv/Scripts/python -m scripts.eval                 # regression eval (eval/questions.json)
 .venv/Scripts/python -m scripts.compare_flows        # lookup vs team vs auto on the 30 RBC questions
 ```
+
+To run it in Docker instead (no Python setup), see [DEPLOY.md](DEPLOY.md): `docker compose up --build`.
